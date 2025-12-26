@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logseq DB Query Builder</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>Logseq DB Query Builder</h1>
+                <span class="version">v0.1.0</span>
+            </div>
+            <div class="header-controls">
+                <button id="theme-toggle" class="btn-icon" title="Toggle theme">
+                    <span class="theme-icon">🌙</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Graph Selection -->
+        <section class="graph-section">
+            <div class="graph-selector">
+                <label for="graph-select">Graph:</label>
+                <select id="graph-select" class="select-input">
+                    <option value="">Select a graph...</option>
+                </select>
+                <span id="connection-status" class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Not connected</span>
+                </span>
+            </div>
+        </section>
+
+        <!-- Filter Builder -->
+        <section class="filter-section">
+            <div class="section-header">
+                <h2>Filters</h2>
+                <button id="add-filter-btn" class="btn-add">
+                    <span>+</span> Filter
+                </button>
+            </div>
+
+            <div id="filters-container" class="filters-container">
+                <!-- Filters will be added here dynamically -->
+            </div>
+
+            <div class="filter-actions">
+                <button id="search-btn" class="btn-primary">Search</button>
+                <button id="clear-all-btn" class="btn-secondary">Clear All</button>
+            </div>
+        </section>
+
+        <!-- Results -->
+        <section class="results-section">
+            <div class="section-header">
+                <h2>Results</h2>
+                <div class="results-controls">
+                    <span id="result-count" class="result-count">0 items found</span>
+                    <select id="result-limit" class="select-input-small">
+                        <option value="25">25</option>
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                        <option value="500">500</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="results-container" class="results-container">
+                <div class="empty-state">
+                    <p>No results yet. Add filters and click Search.</p>
+                </div>
+            </div>
+
+            <div id="loading-state" class="loading-state" style="display: none;">
+                <p>Searching...</p>
+            </div>
+
+            <div id="error-state" class="error-state" style="display: none;">
+                <p class="error-message"></p>
+            </div>
+        </section>
+
+        <!-- Generated Query -->
+        <section class="query-section">
+            <div class="section-header">
+                <h2>Generated Query</h2>
+                <button id="copy-query-btn" class="btn-secondary">Copy Query</button>
+            </div>
+
+            <div class="query-display">
+                <pre id="query-output" class="query-output">No query generated yet.</pre>
+            </div>
+
+            <details class="help-section">
+                <summary>ⓘ How to use this query in Logseq?</summary>
+                <div class="help-content">
+                    <ol>
+                        <li>Copy the generated query above</li>
+                        <li>In Logseq, type <code>/query</code> to create a query block</li>
+                        <li>Select "Advanced query"</li>
+                        <li>Paste the query into the query editor</li>
+                        <li>Press Enter or click outside to execute</li>
+                    </ol>
+                    <p>
+                        <strong>Note:</strong> This generates Datalog queries for Logseq DB graphs.
+                        It won't work with markdown/file-based graphs.
+                    </p>
+                </div>
+            </details>
+        </section>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/queryGenerator.js"></script>
+    <script src="js/filters.js"></script>
+    <script src="js/autocomplete.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
