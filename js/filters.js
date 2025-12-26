@@ -16,8 +16,8 @@ const FILTER_TYPES = {
     },
     'full-text': {
         label: 'full text search',
-        operators: null,
-        inputs: ['value']
+        operators: ['contains', 'equals'],
+        inputs: ['operator', 'value']
     },
     'property': {
         label: 'property',

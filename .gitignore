@@ -29,6 +29,9 @@ test-*.txt
 # Logs
 *.log
 
+# Tests directory (reserved for future unit/integration tests)
+tests/
+
 # Documentation
 docs/
 

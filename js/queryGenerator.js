@@ -194,9 +194,23 @@ class QueryGenerator {
      * Build full text search clause
      */
     static buildFullTextClause(filter, entityVar) {
-        const escapedValue = this.escapeString(filter.value);
-        return `[${entityVar} :block/title ?title]
- [(clojure.string/includes? ?title "${escapedValue}")]`;
+        const { operator = 'contains', value } = filter;
+        const escapedValue = this.escapeString(value);
+
+        switch (operator) {
+            case 'equals':
+                // Case-insensitive exact match using lower-case
+                return `[${entityVar} :block/title ?title]
+ [(clojure.string/lower-case ?title) ?title-lower]
+ [(= ?title-lower "${escapedValue.toLowerCase()}")]`;
+
+            case 'contains':
+            default:
+                // Case-insensitive contains using lower-case
+                return `[${entityVar} :block/title ?title]
+ [(clojure.string/lower-case ?title) ?title-lower]
+ [(clojure.string/includes? ?title-lower "${escapedValue.toLowerCase()}")]`;
+        }
     }
 
     /**

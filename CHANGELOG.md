@@ -5,6 +5,21 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.2] - 2024-12-26
+
+### Added
+- Full-text search operator dropdown with "contains" and "equals" options
+- Case-insensitive exact match capability for text search
+- Helps distinguish between exact matches (e.g., "Lim" surname) and partial matches (e.g., "limit")
+
+### Changed
+- Updated `buildFullTextClause()` in queryGenerator.js to support multiple operators
+- Modified FILTER_TYPES config in filters.js to include operators for full-text search
+- Both operators now use `clojure.string/lower-case` for case-insensitive matching
+
+### Fixed
+- Full-text search no longer limited to only "contains" functionality
+
 ## [0.0.1] - 2024-12-26
 
 ### Added
@@ -49,7 +64,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned for v0.1.0
-- Text search operators (equals, starts-with, ends-with, regex)
+- ~~Text search operators (equals, starts-with, ends-with, regex)~~ Partially done: contains/equals in v0.0.2
+- More text search operators (starts-with, ends-with, regex)
 - Boolean logic support (AND/OR/NOT)
 - Nested filter groups
 - Property type awareness

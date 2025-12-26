@@ -1,6 +1,20 @@
 # Logseq DB Query Builder - Project Status
 
-## 🎉 v0.0.1 Released! (2024-12-26)
+## 🎉 v0.0.2 Released! (2024-12-26)
+
+**Current Version**: v0.0.2
+
+### What's New in v0.0.2
+- ✅ Full-text search now has operator dropdown
+- ✅ Two operators: "contains" and "equals"
+- ✅ Both operators are case-insensitive
+- ✅ Helps distinguish exact matches from partial matches (e.g., "Lim" vs "limit")
+
+---
+
+## Previous Releases
+
+### v0.0.1 (2024-12-26)
 
 ### ✅ What's Working
 
@@ -40,7 +54,7 @@
 - ⚠️ Property names must be typed manually
 - ⚠️ Tags show as entity refs in results (not resolved)
 - ⚠️ No tag inheritance support
-- ⚠️ Full-text only has "contains" operator
+- ~~⚠️ Full-text only has "contains" operator~~ ✅ Fixed in v0.0.2
 - ⚠️ No query validation/testing
 
 ---
