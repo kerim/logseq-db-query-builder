@@ -1,19 +1,24 @@
 # Logseq DB Query Builder - Project Status
 
-## 🎉 v0.0.6 Released! (2025-12-26)
+## 🎉 v0.0.7 Released! (2025-12-26)
 
-**Current Version**: v0.0.6
+**Current Version**: v0.0.7
 
-### What's New in v0.0.6
-- 🐛 **CRITICAL FIX**: Priority filter was completely wrong (used markdown A/B/C, not DB priorities)
-- ✅ Priority filter now uses correct Logseq DB values: Urgent, High, Medium, Low
-- ✅ Priority query pattern updated: `[?b :logseq.property/priority ?priority] [?priority :block/title "Urgent"]`
-- ✅ Task filter now has dropdown with Logseq DB statuses: Backlog, Todo, Doing, In Review, Done, Canceled
-- ✅ Both filters match actual Logseq DB graph system (not markdown file-based graphs)
+### What's New in v0.0.7
+- 🐛 **CRITICAL FIX**: Task status query was completely broken (used `:block/tags` instead of `:logseq.property/status`)
+- ✅ Task status now correctly queries the status property with entity lookup
+- ✅ Query pattern: `[?b :logseq.property/status ?status] [?status :block/title "Doing"]`
+- ✅ **Multi-select support** - Select multiple statuses at once (e.g., Doing OR Todo)
+- ✅ Dropdown shows all 6 statuses simultaneously for easy multi-selection
+- ✅ OR query generation for multiple selected statuses
 
 ---
 
 ## Previous Releases
+
+### v0.0.6 (2025-12-26)
+- ✅ Fixed priority filter to use correct DB values: Urgent, High, Medium, Low (not A/B/C)
+- ✅ Added task status dropdown with Logseq DB statuses
 
 ### v0.0.5 (2025-12-26)
 - ✅ Fixed case-insensitive full-text search using regex patterns with `(?i)` flag
@@ -273,6 +278,6 @@ open index.html
 ---
 
 **Last Updated**: 2025-12-26
-**Version**: 0.0.6
+**Version**: 0.0.7
 **Status**: Active Development
 **Maintainer**: P. Kerim Friedman

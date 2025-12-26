@@ -243,17 +243,20 @@ class FilterManager {
                 case 'task-status-select':
                     const taskStatusSelect = document.createElement('select');
                     taskStatusSelect.className = 'select-input-small';
-                    taskStatusSelect.innerHTML = `
-                        <option value="">Select status...</option>
-                        <option value="Backlog" ${filter.value === 'Backlog' ? 'selected' : ''}>Backlog</option>
-                        <option value="Todo" ${filter.value === 'Todo' ? 'selected' : ''}>Todo</option>
-                        <option value="Doing" ${filter.value === 'Doing' ? 'selected' : ''}>Doing</option>
-                        <option value="In Review" ${filter.value === 'In Review' ? 'selected' : ''}>In Review</option>
-                        <option value="Done" ${filter.value === 'Done' ? 'selected' : ''}>Done</option>
-                        <option value="Canceled" ${filter.value === 'Canceled' ? 'selected' : ''}>Canceled</option>
-                    `;
+                    taskStatusSelect.multiple = true;
+                    taskStatusSelect.size = 6;
+
+                    // Initialize as array if not already
+                    if (!filter.value) filter.value = [];
+                    if (!Array.isArray(filter.value)) filter.value = [filter.value];
+
+                    const statuses = ['Backlog', 'Todo', 'Doing', 'In Review', 'Done', 'Canceled'];
+                    taskStatusSelect.innerHTML = statuses.map(status =>
+                        `<option value="${status}" ${filter.value.includes(status) ? 'selected' : ''}>${status}</option>`
+                    ).join('');
+
                     taskStatusSelect.addEventListener('change', (e) => {
-                        filter.value = e.target.value;
+                        filter.value = Array.from(e.target.selectedOptions).map(opt => opt.value);
                         this.notifyChange();
                     });
                     container.appendChild(taskStatusSelect);

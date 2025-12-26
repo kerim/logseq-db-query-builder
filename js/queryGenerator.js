@@ -83,6 +83,12 @@ class QueryGenerator {
                        filter.value.trim().length > 0;
             
             case 'task':
+                // Task can be array (multi-select) or string
+                if (Array.isArray(filter.value)) {
+                    return filter.value.length > 0;
+                }
+                return filter.value && filter.value.trim().length > 0;
+
             case 'priority':
                 return filter.value && filter.value.trim().length > 0;
             
@@ -255,12 +261,23 @@ class QueryGenerator {
     }
 
     /**
-     * Build task clause (tags-based in DB graphs)
+     * Build task clause (status property in DB graphs)
      */
     static buildTaskClause(filter, entityVar) {
-        const escapedValue = this.escapeString(filter.value);
-        return `[${entityVar} :block/tags ?task]
- [?task :block/title "${escapedValue}"]`;
+        // Handle both single value and array of values (multi-select)
+        const values = Array.isArray(filter.value) ? filter.value : [filter.value];
+        const escapedValues = values.map(v => this.escapeString(v));
+
+        if (escapedValues.length === 1) {
+            // Single status
+            return `[${entityVar} :logseq.property/status ?status]
+ [?status :block/title "${escapedValues[0]}"]`;
+        } else {
+            // Multiple statuses - use OR
+            const orClauses = escapedValues.map(v => `[?status :block/title "${v}"]`).join('\n ');
+            return `[${entityVar} :logseq.property/status ?status]
+ (or ${orClauses})`;
+        }
     }
 
     /**

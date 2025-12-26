@@ -5,6 +5,26 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.7] - 2025-12-26
+
+### Fixed
+- **CRITICAL FIX**: Task status query was completely broken (used :block/tags instead of :logseq.property/status)
+- Task status now correctly uses `:logseq.property/status` property with entity reference lookup
+- Query pattern: `[?b :logseq.property/status ?status] [?status :block/title "Doing"]`
+- Selecting "Doing" now returns correct results (was returning zero)
+
+### Added
+- **Multi-select support** for task status filter
+- Can now select multiple statuses (e.g., Doing OR Todo) without adding separate filters
+- Multi-select dropdown shows all 6 statuses at once for easy selection
+- OR query generation for multiple selected statuses
+
+### Changed
+- Task status dropdown now uses `multiple` attribute with `size="6"`
+- Task filter value is now an array (supports multiple selections)
+- Query generator handles both single and multiple status values
+- Updated validation logic to handle array values
+
 ## [0.0.6] - 2025-12-26
 
 ### Fixed
