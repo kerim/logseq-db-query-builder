@@ -195,23 +195,22 @@ class QueryGenerator {
      */
     static buildFullTextClause(filter, entityVar) {
         const { operator = 'contains', value } = filter;
-        const escapedValue = this.escapeString(value);
-        // Lowercase in JS so it's a literal string in the query
-        const lowerValue = escapedValue.toLowerCase();
+        const escapedValue = this.escapeString(value);  // Escape quotes, etc.
+        const regexEscaped = this.escapeRegex(escapedValue);  // Escape regex chars
 
         switch (operator) {
             case 'equals':
-                // Case-insensitive exact match - lowercase title, compare to lowercase literal
+                // Case-insensitive exact match using anchored regex
                 return `[${entityVar} :block/title ?title]
- [(clojure.string/lower-case ?title) ?title-lower]
- [(= ?title-lower "${lowerValue}")]`;
+ [(re-pattern "(?i)^${regexEscaped}$") ?pattern]
+ [(re-matches ?pattern ?title)]`;
 
             case 'contains':
             default:
-                // Case-insensitive contains - lowercase title, check if it includes lowercase literal
+                // Case-insensitive substring match using regex
                 return `[${entityVar} :block/title ?title]
- [(clojure.string/lower-case ?title) ?title-lower]
- [(clojure.string/includes? ?title-lower "${lowerValue}")]`;
+ [(re-pattern "(?i)${regexEscaped}") ?pattern]
+ [(re-find ?pattern ?title)]`;
         }
     }
 
@@ -324,6 +323,13 @@ class QueryGenerator {
             .replace(/\n/g, '\\n')
             .replace(/\r/g, '\\r')
             .replace(/\t/g, '\\t');
+    }
+
+    /**
+     * Escape regex special characters for literal matching
+     */
+    static escapeRegex(str) {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 }
 

@@ -5,6 +5,21 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.5] - 2025-12-26
+
+### Fixed
+- **CRITICAL BUG FIX**: Full-text search case-insensitivity completely broken in v0.0.4
+- `clojure.string/lower-case` is not available in Logseq CLI's DataScript implementation
+- Now uses case-insensitive regex patterns: `[(re-pattern "(?i)search") ?pattern] [(re-find ?pattern ?title)]`
+- "contains" operator: Uses `re-find` with `(?i)` flag for substring matching
+- "equals" operator: Uses `re-matches` with `(?i)^...$` anchors for exact matching
+- Added regex character escaping to treat search terms as literal text (not regex patterns)
+- Search now properly matches "Friedman" when searching for "fri", "FRI", "Fri", etc.
+
+### Changed
+- Removed non-functional `clojure.string/lower-case` calls from query generation
+- Added `escapeRegex()` helper method to escape regex special characters
+
 ## [0.0.4] - 2024-12-26
 
 ### Fixed

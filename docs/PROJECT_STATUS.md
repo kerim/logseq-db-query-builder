@@ -1,19 +1,26 @@
 # Logseq DB Query Builder - Project Status
 
-## 🎉 v0.0.4 Released! (2024-12-26)
+## 🎉 v0.0.5 Released! (2025-12-26)
 
-**Current Version**: v0.0.4
+**Current Version**: v0.0.5
 
-### What's New in v0.0.4
-- 🐛 **CRITICAL BUG FIX**: Fixed completely broken search in v0.0.3
-- ✅ Cannot call `clojure.string/lower-case` on string literals in Datalog
-- ✅ Now correctly lowercases search term in JavaScript (before query generation)
-- ✅ Compares lowercased title against lowercase string literal
-- ✅ Pattern: `[(clojure.string/lower-case ?title) ?title-lower] [(clojure.string/includes? ?title-lower "lin")]`
+### What's New in v0.0.5
+- 🐛 **CRITICAL BUG FIX**: Fixed completely broken case-insensitive search in v0.0.4
+- ✅ `clojure.string/lower-case` function is NOT available in Logseq CLI's DataScript
+- ✅ Now uses regex patterns with `(?i)` flag for true case-insensitive matching
+- ✅ "contains" operator: `[(re-pattern "(?i)search") ?pattern] [(re-find ?pattern ?title)]`
+- ✅ "equals" operator: `[(re-pattern "(?i)^search$") ?pattern] [(re-matches ?pattern ?title)]`
+- ✅ Added `escapeRegex()` helper to escape regex special characters
+- ✅ Search "fri" now finds "Friedman", "FRI" finds "Friedman", etc.
 
 ---
 
 ## Previous Releases
+
+### v0.0.4 (2024-12-26) [BROKEN - DO NOT USE]
+- ❌ Used `clojure.string/lower-case` which doesn't work in Logseq CLI
+- ❌ Function throws "Unknown function" error
+- ⚠️ Use v0.0.5 instead
 
 ### v0.0.3 (2024-12-26) [BROKEN - DO NOT USE]
 - ❌ Tried to call `clojure.string/lower-case` on string literal - doesn't work in Datalog
@@ -263,7 +270,7 @@ open index.html
 
 ---
 
-**Last Updated**: 2024-12-26
-**Version**: 0.0.4
+**Last Updated**: 2025-12-26
+**Version**: 0.0.5
 **Status**: Active Development
 **Maintainer**: P. Kerim Friedman
