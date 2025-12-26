@@ -196,22 +196,22 @@ class QueryGenerator {
     static buildFullTextClause(filter, entityVar) {
         const { operator = 'contains', value } = filter;
         const escapedValue = this.escapeString(value);
+        // Lowercase in JS so it's a literal string in the query
+        const lowerValue = escapedValue.toLowerCase();
 
         switch (operator) {
             case 'equals':
-                // Case-insensitive exact match - compare lowercased versions
+                // Case-insensitive exact match - lowercase title, compare to lowercase literal
                 return `[${entityVar} :block/title ?title]
  [(clojure.string/lower-case ?title) ?title-lower]
- [(clojure.string/lower-case "${escapedValue}") ?search-lower]
- [(= ?title-lower ?search-lower)]`;
+ [(= ?title-lower "${lowerValue}")]`;
 
             case 'contains':
             default:
-                // Case-insensitive contains - compare lowercased versions
+                // Case-insensitive contains - lowercase title, check if it includes lowercase literal
                 return `[${entityVar} :block/title ?title]
  [(clojure.string/lower-case ?title) ?title-lower]
- [(clojure.string/lower-case "${escapedValue}") ?search-lower]
- [(clojure.string/includes? ?title-lower ?search-lower)]`;
+ [(clojure.string/includes? ?title-lower "${lowerValue}")]`;
         }
     }
 

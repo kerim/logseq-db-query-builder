@@ -33,20 +33,32 @@ When incrementing version, update in these files:
 
 ### Post-Change Checklist
 
-**After completing ANY code changes, complete this checklist:**
+**After completing ANY code changes, complete this checklist IN ORDER:**
 
-- [ ] **VERIFY IMPLEMENTATION**: Test the generated query using the query builder UI or manual CLI test
-  - Confirm the query syntax is correct
-  - Verify results are as expected
-  - Do NOT commit broken code
-- [ ] Update version in `index.html` (line 6 and line 15)
-- [ ] Update version in `README.md` (if version shown)
-- [ ] Update version in `docs/PROJECT_STATUS.md`
-- [ ] Update `CHANGELOG.md` with changes
-- [ ] Run git status to verify changed files
-- [ ] Commit changes with descriptive message
-- [ ] Tag commit with version number
-- [ ] Verify commit and tag were created
+1. **Update version files**:
+   - [ ] Update version in `index.html` (line 6 and line 15)
+   - [ ] Update version in `README.md` (if version shown)
+   - [ ] Update version in `docs/PROJECT_STATUS.md`
+   - [ ] Update `CHANGELOG.md` with changes
+
+2. **Commit immediately** (BEFORE testing):
+   - [ ] Run git status to verify changed files
+   - [ ] Stage changes: `git add .`
+   - [ ] Commit changes with descriptive message
+   - [ ] Tag commit with version number
+   - [ ] Verify commit and tag were created
+
+3. **Test AFTER committing**:
+   - [ ] Test the generated query using the query builder UI or manual CLI test
+   - [ ] Confirm the query syntax is correct
+   - [ ] Verify results are as expected
+   - [ ] If tests fail, fix and increment version again for next commit
+
+**Why commit before testing:**
+- Ensures every change has a unique version number
+- Creates rollback points for every iteration
+- User can always test specific versions
+- Git history shows progression of fixes
 
 ### Git Workflow
 

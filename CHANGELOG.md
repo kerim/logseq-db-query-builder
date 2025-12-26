@@ -5,7 +5,20 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.0.3] - 2024-12-26
+## [0.0.4] - 2024-12-26
+
+### Fixed
+- **CRITICAL BUG FIX**: Full-text search completely broken in v0.0.3
+- Fixed incorrect attempt to call `clojure.string/lower-case` on string literal in query
+- Now correctly lowercases search term in JavaScript, then compares lowercased title against lowercase literal
+- Query pattern now matches working v0.0.1 approach: lowercase title variable, compare to lowercase string literal
+- Searches like "lin" with contains operator now work correctly
+
+### Changed
+- Reverted to proper pattern: lowercase in JS for literal string, lowercase title in Datalog
+- Updated `buildFullTextClause()` to use `escapedValue.toLowerCase()` in JavaScript
+
+## [0.0.3] - 2024-12-26 [BROKEN - DO NOT USE]
 
 ### Fixed
 - **CRITICAL BUG FIX**: Full-text search case-insensitivity was broken

@@ -1,23 +1,29 @@
 # Logseq DB Query Builder - Project Status
 
-## 🎉 v0.0.3 Released! (2024-12-26)
+## 🎉 v0.0.4 Released! (2024-12-26)
 
-**Current Version**: v0.0.3
+**Current Version**: v0.0.4
 
-### What's New in v0.0.3
-- 🐛 **CRITICAL BUG FIX**: Case-insensitive search now works correctly
-- ✅ Fixed broken implementation that only matched lowercase text
-- ✅ Both title and search term now properly converted to lowercase for comparison
-- ✅ Search works regardless of capitalization (e.g., "Lim", "lim", "LIM" all match)
+### What's New in v0.0.4
+- 🐛 **CRITICAL BUG FIX**: Fixed completely broken search in v0.0.3
+- ✅ Cannot call `clojure.string/lower-case` on string literals in Datalog
+- ✅ Now correctly lowercases search term in JavaScript (before query generation)
+- ✅ Compares lowercased title against lowercase string literal
+- ✅ Pattern: `[(clojure.string/lower-case ?title) ?title-lower] [(clojure.string/includes? ?title-lower "lin")]`
 
 ---
 
 ## Previous Releases
 
+### v0.0.3 (2024-12-26) [BROKEN - DO NOT USE]
+- ❌ Tried to call `clojure.string/lower-case` on string literal - doesn't work in Datalog
+- ❌ Search returned no results
+- ⚠️ Use v0.0.4 instead
+
 ### v0.0.2 (2024-12-26) [BROKEN - DO NOT USE]
 - ❌ Full-text search case-insensitivity was broken (only matched lowercase)
 - ✅ Added operator dropdown (contains/equals)
-- ⚠️ Use v0.0.3 instead
+- ⚠️ Use v0.0.4 instead
 
 ### v0.0.1 (2024-12-26)
 
@@ -258,6 +264,6 @@ open index.html
 ---
 
 **Last Updated**: 2024-12-26
-**Version**: 0.0.3
+**Version**: 0.0.4
 **Status**: Active Development
 **Maintainer**: P. Kerim Friedman
