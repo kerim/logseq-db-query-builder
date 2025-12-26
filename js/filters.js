@@ -208,6 +208,28 @@ class FilterManager {
                         this.notifyChange();
                     });
                     container.appendChild(autocompleteInput);
+
+                    // Add "Include extensions" checkbox for tags and page-reference filters
+                    if (filter.type === 'tags' || filter.type === 'page-reference') {
+                        const extensionsWrapper = document.createElement('div');
+                        extensionsWrapper.className = 'extensions-checkbox-wrapper';
+
+                        const extensionsLabel = document.createElement('label');
+                        extensionsLabel.className = 'checkbox-label extensions-checkbox';
+
+                        const extensionsCheckbox = document.createElement('input');
+                        extensionsCheckbox.type = 'checkbox';
+                        extensionsCheckbox.checked = filter.includeExtensions || false;
+                        extensionsCheckbox.addEventListener('change', (e) => {
+                            filter.includeExtensions = e.target.checked;
+                            this.notifyChange();
+                        });
+
+                        extensionsLabel.appendChild(extensionsCheckbox);
+                        extensionsLabel.appendChild(document.createTextNode(' Include extensions'));
+                        extensionsWrapper.appendChild(extensionsLabel);
+                        container.appendChild(extensionsWrapper);
+                    }
                     break;
 
                 case 'property-name':
@@ -291,6 +313,27 @@ class FilterManager {
                         label.appendChild(document.createTextNode(' ' + status));
                         taskStatusWrapper.appendChild(label);
                     });
+
+                    // Add separator
+                    const separator = document.createElement('div');
+                    separator.className = 'checkbox-separator';
+                    taskStatusWrapper.appendChild(separator);
+
+                    // Add "Include extensions" checkbox
+                    const extensionsLabel = document.createElement('label');
+                    extensionsLabel.className = 'checkbox-label extensions-checkbox';
+
+                    const extensionsCheckbox = document.createElement('input');
+                    extensionsCheckbox.type = 'checkbox';
+                    extensionsCheckbox.checked = filter.includeExtensions || false;
+                    extensionsCheckbox.addEventListener('change', (e) => {
+                        filter.includeExtensions = e.target.checked;
+                        this.notifyChange();
+                    });
+
+                    extensionsLabel.appendChild(extensionsCheckbox);
+                    extensionsLabel.appendChild(document.createTextNode(' Include tag extensions (e.g., shopping → task)'));
+                    taskStatusWrapper.appendChild(extensionsLabel);
 
                     container.appendChild(taskStatusWrapper);
                     break;

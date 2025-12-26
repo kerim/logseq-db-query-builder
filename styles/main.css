@@ -368,6 +368,29 @@ section {
     accent-color: var(--accent-primary);
 }
 
+/* Separator between status checkboxes and extensions checkbox */
+.checkbox-separator {
+    height: 1px;
+    background: var(--border-color);
+    margin: var(--spacing-sm) 0;
+}
+
+/* Extensions checkbox styling */
+.extensions-checkbox {
+    margin-top: var(--spacing-xs);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-style: italic;
+}
+
+.extensions-checkbox:hover {
+    color: var(--text-primary);
+}
+
+.extensions-checkbox-wrapper {
+    margin-top: var(--spacing-sm);
+}
+
 .filter-actions {
     display: flex;
     gap: var(--spacing-md);

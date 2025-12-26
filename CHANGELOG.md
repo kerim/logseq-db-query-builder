@@ -5,6 +5,26 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.9] - 2025-12-26
+
+### Added
+- **Tag inheritance support**: New "Include extensions" checkbox for task and tags filters
+- When enabled, searches include both direct tags and tags that extend the target tag
+- Example: Searching for "task" with extensions enabled will also find blocks tagged with "shopping" if shopping extends task
+- Uses `or-join` with `:logseq.property.class/extends` to query tag hierarchy
+- Visual separator between status checkboxes and extensions checkbox
+- Styled extensions checkbox with italic text and secondary color
+
+### Changed
+- Modified `buildTaskClause()` to add tag inheritance check when `includeExtensions` is true
+- Modified `buildTagsClause()` to wrap tag matching in `or-join` when `includeExtensions` is true
+- Task filter now explicitly checks for "task" tag (or its extensions) when extensions enabled
+
+### Technical
+- Added `filter.includeExtensions` boolean property to filter objects
+- Added `.checkbox-separator` and `.extensions-checkbox` CSS classes
+- Query pattern uses `(or-join [?b] (and [?b :block/tags ?t] ...) (and [?b :block/tags ?child] [?child :logseq.property.class/extends ?parent] ...))` for inheritance
+
 ## [0.0.8] - 2025-12-26
 
 ### Added

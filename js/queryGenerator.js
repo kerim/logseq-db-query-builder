@@ -190,8 +190,20 @@ class QueryGenerator {
      */
     static buildTagsClause(filter, entityVar) {
         const escapedValue = this.escapeString(filter.value);
-        return `[${entityVar} :block/tags ?t]
+
+        if (filter.includeExtensions) {
+            // Use or-join to match both direct tags and tags that extend the target tag
+            return `(or-join [${entityVar}]
+  (and [${entityVar} :block/tags ?t]
+       [?t :block/title "${escapedValue}"])
+  (and [${entityVar} :block/tags ?child]
+       [?child :logseq.property.class/extends ?parent]
+       [?parent :block/title "${escapedValue}"]))`;
+        } else {
+            // Simple tag match
+            return `[${entityVar} :block/tags ?t]
  [?t :block/title "${escapedValue}"]`;
+        }
     }
 
     /**
@@ -266,16 +278,31 @@ class QueryGenerator {
         const values = Array.isArray(filter.value) ? filter.value : [filter.value];
         const escapedValues = values.map(v => this.escapeString(v));
 
+        const clauses = [];
+
+        // Add tag inheritance check if includeExtensions is true
+        if (filter.includeExtensions) {
+            clauses.push(`(or-join [${entityVar}]
+  (and [${entityVar} :block/tags ?t]
+       [?t :block/title "task"])
+  (and [${entityVar} :block/tags ?child]
+       [?child :logseq.property.class/extends ?parent]
+       [?parent :block/title "task"]))`);
+        }
+
+        // Add status filter
         if (escapedValues.length === 1) {
             // Single status
-            return `[${entityVar} :logseq.property/status ?status]
- [?status :block/title "${escapedValues[0]}"]`;
+            clauses.push(`[${entityVar} :logseq.property/status ?status]
+ [?status :block/title "${escapedValues[0]}"]`);
         } else {
             // Multiple statuses - use OR
             const orClauses = escapedValues.map(v => `[?status :block/title "${v}"]`).join('\n ');
-            return `[${entityVar} :logseq.property/status ?status]
- (or ${orClauses})`;
+            clauses.push(`[${entityVar} :logseq.property/status ?status]
+ (or ${orClauses})`);
         }
+
+        return clauses.join('\n ');
     }
 
     /**
