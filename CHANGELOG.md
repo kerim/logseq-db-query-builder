@@ -5,6 +5,26 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.8] - 2025-12-26
+
+### Added
+- **UUID resolution**: Block references in results (e.g., `[[uuid]]`) are now automatically resolved to show readable titles (e.g., `[[Title]]`)
+- Multi-select support for priority filter (can now select multiple priorities like "Urgent OR High")
+- Checkbox-based UI for task status and priority filters (replaced highlighting-based dropdown)
+- CSS styles for checkbox groups with hover effects and proper spacing
+
+### Changed
+- Priority filter now supports multi-select with OR query generation (matching task status behavior)
+- Task status and priority filters now use checkbox groups instead of multi-select dropdowns
+- Results display now resolves all UUID references before rendering
+- Improved user experience with visual checkbox selection
+
+### Technical
+- Added `resolveUUIDs()` method to `LogseqAPI` class for UUID-to-title resolution
+- Updated `executeSearch()` to call UUID resolution before displaying results
+- Modified `buildPriorityClause()` to handle array values and generate OR queries
+- Added `.checkbox-group` and `.checkbox-label` CSS classes with theme-aware styling
+
 ## [0.0.7] - 2025-12-26
 
 ### Fixed

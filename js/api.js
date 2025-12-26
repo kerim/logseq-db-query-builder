@@ -216,6 +216,77 @@ class LogseqAPI {
             throw error;
         }
     }
+
+    /**
+     * Resolve UUID references in block titles
+     * Converts [[uuid]] to [[title]] by querying each UUID
+     * @param {Array} blocks - Array of block objects
+     * @param {string} graphName - Name of the graph
+     * @returns {Promise<Array>} Blocks with resolved UUIDs
+     */
+    async resolveUUIDs(blocks, graphName) {
+        const uuidPattern = /\[\[([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\]\]/g;
+        const uuidsToResolve = new Set();
+
+        // Extract all UUIDs from block titles
+        blocks.forEach(block => {
+            const title = block['block/title'];
+            if (title) {
+                const matches = title.matchAll(uuidPattern);
+                for (const match of matches) {
+                    uuidsToResolve.add(match[1]);
+                }
+            }
+        });
+
+        // If no UUIDs to resolve, return blocks as-is
+        if (uuidsToResolve.size === 0) {
+            return blocks;
+        }
+
+        console.log(`Resolving ${uuidsToResolve.size} UUID references...`);
+
+        // Build UUID to title mapping by querying each UUID
+        const uuidMap = {};
+        for (const uuid of uuidsToResolve) {
+            try {
+                const query = `[:find (pull ?b [:block/title]) :where [?b :block/uuid #uuid "${uuid}"]]`;
+                const result = await this.executeQuery(graphName, query);
+
+                if (result.data && result.data.length > 0) {
+                    const block = result.data[0];
+                    if (block && block['block/title']) {
+                        uuidMap[uuid] = block['block/title'];
+                    }
+                }
+            } catch (error) {
+                console.warn(`Failed to resolve UUID ${uuid}:`, error);
+                // Continue with other UUIDs even if one fails
+            }
+        }
+
+        console.log(`Resolved ${Object.keys(uuidMap).length} UUIDs`);
+
+        // Replace UUIDs with titles in all block titles
+        return blocks.map(block => {
+            const title = block['block/title'];
+            if (title) {
+                let resolvedTitle = title;
+                for (const [uuid, resolvedName] of Object.entries(uuidMap)) {
+                    const pattern = `[[${uuid}]]`;
+                    const replacement = `[[${resolvedName}]]`;
+                    resolvedTitle = resolvedTitle.replace(pattern, replacement);
+                }
+
+                // Return new block object with resolved title
+                return {
+                    ...block,
+                    'block/title': resolvedTitle
+                };
+            }
+            return block;
+        });
+    }
 }
 
 // Export as global for use in other scripts

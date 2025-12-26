@@ -83,13 +83,11 @@ class QueryGenerator {
                        filter.value.trim().length > 0;
             
             case 'task':
-                // Task can be array (multi-select) or string
+            case 'priority':
+                // Both can be array (multi-select) or string
                 if (Array.isArray(filter.value)) {
                     return filter.value.length > 0;
                 }
-                return filter.value && filter.value.trim().length > 0;
-
-            case 'priority':
                 return filter.value && filter.value.trim().length > 0;
             
             case 'between':
@@ -284,9 +282,20 @@ class QueryGenerator {
      * Build priority clause
      */
     static buildPriorityClause(filter, entityVar) {
-        const escapedValue = this.escapeString(filter.value);
-        return `[${entityVar} :logseq.property/priority ?priority]
- [?priority :block/title "${escapedValue}"]`;
+        // Handle both single value and array of values (multi-select)
+        const values = Array.isArray(filter.value) ? filter.value : [filter.value];
+        const escapedValues = values.map(v => this.escapeString(v));
+
+        if (escapedValues.length === 1) {
+            // Single priority
+            return `[${entityVar} :logseq.property/priority ?priority]
+ [?priority :block/title "${escapedValues[0]}"]`;
+        } else {
+            // Multiple priorities - use OR
+            const orClauses = escapedValues.map(v => `[?priority :block/title "${v}"]`).join('\n ');
+            return `[${entityVar} :logseq.property/priority ?priority]
+ (or ${orClauses})`;
+        }
     }
 
     /**

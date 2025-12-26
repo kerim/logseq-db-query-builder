@@ -224,42 +224,75 @@ class FilterManager {
                     break;
 
                 case 'priority-select':
-                    const prioritySelect = document.createElement('select');
-                    prioritySelect.className = 'select-input-small';
-                    prioritySelect.innerHTML = `
-                        <option value="">Select priority...</option>
-                        <option value="Urgent" ${filter.value === 'Urgent' ? 'selected' : ''}>Urgent</option>
-                        <option value="High" ${filter.value === 'High' ? 'selected' : ''}>High</option>
-                        <option value="Medium" ${filter.value === 'Medium' ? 'selected' : ''}>Medium</option>
-                        <option value="Low" ${filter.value === 'Low' ? 'selected' : ''}>Low</option>
-                    `;
-                    prioritySelect.addEventListener('change', (e) => {
-                        filter.value = e.target.value;
-                        this.notifyChange();
-                    });
-                    container.appendChild(prioritySelect);
-                    break;
-
-                case 'task-status-select':
-                    const taskStatusSelect = document.createElement('select');
-                    taskStatusSelect.className = 'select-input-small';
-                    taskStatusSelect.multiple = true;
-                    taskStatusSelect.size = 6;
-
                     // Initialize as array if not already
                     if (!filter.value) filter.value = [];
                     if (!Array.isArray(filter.value)) filter.value = [filter.value];
 
-                    const statuses = ['Backlog', 'Todo', 'Doing', 'In Review', 'Done', 'Canceled'];
-                    taskStatusSelect.innerHTML = statuses.map(status =>
-                        `<option value="${status}" ${filter.value.includes(status) ? 'selected' : ''}>${status}</option>`
-                    ).join('');
+                    const priorityWrapper = document.createElement('div');
+                    priorityWrapper.className = 'checkbox-group';
 
-                    taskStatusSelect.addEventListener('change', (e) => {
-                        filter.value = Array.from(e.target.selectedOptions).map(opt => opt.value);
-                        this.notifyChange();
+                    const priorities = ['Urgent', 'High', 'Medium', 'Low'];
+                    priorities.forEach(priority => {
+                        const label = document.createElement('label');
+                        label.className = 'checkbox-label';
+
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.value = priority;
+                        checkbox.checked = filter.value.includes(priority);
+                        checkbox.addEventListener('change', (e) => {
+                            if (e.target.checked) {
+                                if (!filter.value.includes(priority)) {
+                                    filter.value.push(priority);
+                                }
+                            } else {
+                                filter.value = filter.value.filter(v => v !== priority);
+                            }
+                            this.notifyChange();
+                        });
+
+                        label.appendChild(checkbox);
+                        label.appendChild(document.createTextNode(' ' + priority));
+                        priorityWrapper.appendChild(label);
                     });
-                    container.appendChild(taskStatusSelect);
+
+                    container.appendChild(priorityWrapper);
+                    break;
+
+                case 'task-status-select':
+                    // Initialize as array if not already
+                    if (!filter.value) filter.value = [];
+                    if (!Array.isArray(filter.value)) filter.value = [filter.value];
+
+                    const taskStatusWrapper = document.createElement('div');
+                    taskStatusWrapper.className = 'checkbox-group';
+
+                    const statuses = ['Backlog', 'Todo', 'Doing', 'In Review', 'Done', 'Canceled'];
+                    statuses.forEach(status => {
+                        const label = document.createElement('label');
+                        label.className = 'checkbox-label';
+
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.value = status;
+                        checkbox.checked = filter.value.includes(status);
+                        checkbox.addEventListener('change', (e) => {
+                            if (e.target.checked) {
+                                if (!filter.value.includes(status)) {
+                                    filter.value.push(status);
+                                }
+                            } else {
+                                filter.value = filter.value.filter(v => v !== status);
+                            }
+                            this.notifyChange();
+                        });
+
+                        label.appendChild(checkbox);
+                        label.appendChild(document.createTextNode(' ' + status));
+                        taskStatusWrapper.appendChild(label);
+                    });
+
+                    container.appendChild(taskStatusWrapper);
                     break;
 
                 case 'date-range':

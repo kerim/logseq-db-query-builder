@@ -223,20 +223,25 @@ class App {
 
         try {
             const result = await this.api.executeQuery(this.state.graph, this.state.generatedQuery);
-            
+
             console.log('API result:', result);
-            
+
             // The API returns data as a flat array of objects
-            const results = result.data || [];
-            
+            let results = result.data || [];
+
             console.log('Extracted results:', results.length, 'items');
-            
+
+            // Resolve UUID references in block titles
+            console.log('Resolving UUID references...');
+            results = await this.api.resolveUUIDs(results, this.state.graph);
+            console.log('UUID resolution complete');
+
             // Apply result limit
             const limitedResults = results.slice(0, this.state.resultLimit);
-            
+
             this.state.results = limitedResults;
             this.state.resultCount = results.length;
-            
+
             this.displayResults(limitedResults, results.length);
         } catch (error) {
             console.error('Search failed:', error);
