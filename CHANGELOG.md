@@ -5,6 +5,25 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.6] - 2025-12-26
+
+### Fixed
+- **CRITICAL FIX**: Priority filter used wrong values (A/B/C are markdown, not DB)
+- Priority filter now uses correct Logseq DB values: Urgent, High, Medium, Low
+- Priority query now correctly uses `:logseq.property/priority` with entity reference lookup
+- Query pattern: `[?b :logseq.property/priority ?priority] [?priority :block/title "Urgent"]`
+
+### Added
+- Task filter now uses dropdown menu with Logseq DB task statuses
+- Pre-populated task status options: Backlog, Todo, Doing, In Review, Done, Canceled
+- Matches Logseq DB graph task status system shown in Set Status menu
+
+### Changed
+- Task filter changed from text input to dropdown select
+- Priority filter values updated to match DB graph system
+- Updated FILTER_TYPES configuration for both task and priority filters
+- Added 'task-status-select' input type rendering
+
 ## [0.0.5] - 2025-12-26
 
 ### Fixed

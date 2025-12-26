@@ -32,7 +32,7 @@ const FILTER_TYPES = {
     'task': {
         label: 'task',
         operators: null,
-        inputs: ['value']
+        inputs: ['task-status-select']
     },
     'priority': {
         label: 'priority',
@@ -228,15 +228,35 @@ class FilterManager {
                     prioritySelect.className = 'select-input-small';
                     prioritySelect.innerHTML = `
                         <option value="">Select priority...</option>
-                        <option value="A" ${filter.value === 'A' ? 'selected' : ''}>A</option>
-                        <option value="B" ${filter.value === 'B' ? 'selected' : ''}>B</option>
-                        <option value="C" ${filter.value === 'C' ? 'selected' : ''}>C</option>
+                        <option value="Urgent" ${filter.value === 'Urgent' ? 'selected' : ''}>Urgent</option>
+                        <option value="High" ${filter.value === 'High' ? 'selected' : ''}>High</option>
+                        <option value="Medium" ${filter.value === 'Medium' ? 'selected' : ''}>Medium</option>
+                        <option value="Low" ${filter.value === 'Low' ? 'selected' : ''}>Low</option>
                     `;
                     prioritySelect.addEventListener('change', (e) => {
                         filter.value = e.target.value;
                         this.notifyChange();
                     });
                     container.appendChild(prioritySelect);
+                    break;
+
+                case 'task-status-select':
+                    const taskStatusSelect = document.createElement('select');
+                    taskStatusSelect.className = 'select-input-small';
+                    taskStatusSelect.innerHTML = `
+                        <option value="">Select status...</option>
+                        <option value="Backlog" ${filter.value === 'Backlog' ? 'selected' : ''}>Backlog</option>
+                        <option value="Todo" ${filter.value === 'Todo' ? 'selected' : ''}>Todo</option>
+                        <option value="Doing" ${filter.value === 'Doing' ? 'selected' : ''}>Doing</option>
+                        <option value="In Review" ${filter.value === 'In Review' ? 'selected' : ''}>In Review</option>
+                        <option value="Done" ${filter.value === 'Done' ? 'selected' : ''}>Done</option>
+                        <option value="Canceled" ${filter.value === 'Canceled' ? 'selected' : ''}>Canceled</option>
+                    `;
+                    taskStatusSelect.addEventListener('change', (e) => {
+                        filter.value = e.target.value;
+                        this.notifyChange();
+                    });
+                    container.appendChild(taskStatusSelect);
                     break;
 
                 case 'date-range':

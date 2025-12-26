@@ -268,7 +268,8 @@ class QueryGenerator {
      */
     static buildPriorityClause(filter, entityVar) {
         const escapedValue = this.escapeString(filter.value);
-        return `[${entityVar} :block/priority "${escapedValue}"]`;
+        return `[${entityVar} :logseq.property/priority ?priority]
+ [?priority :block/title "${escapedValue}"]`;
     }
 
     /**

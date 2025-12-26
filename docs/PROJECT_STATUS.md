@@ -1,26 +1,28 @@
 # Logseq DB Query Builder - Project Status
 
-## 🎉 v0.0.5 Released! (2025-12-26)
+## 🎉 v0.0.6 Released! (2025-12-26)
 
-**Current Version**: v0.0.5
+**Current Version**: v0.0.6
 
-### What's New in v0.0.5
-- 🐛 **CRITICAL BUG FIX**: Fixed completely broken case-insensitive search in v0.0.4
-- ✅ `clojure.string/lower-case` function is NOT available in Logseq CLI's DataScript
-- ✅ Now uses regex patterns with `(?i)` flag for true case-insensitive matching
-- ✅ "contains" operator: `[(re-pattern "(?i)search") ?pattern] [(re-find ?pattern ?title)]`
-- ✅ "equals" operator: `[(re-pattern "(?i)^search$") ?pattern] [(re-matches ?pattern ?title)]`
-- ✅ Added `escapeRegex()` helper to escape regex special characters
-- ✅ Search "fri" now finds "Friedman", "FRI" finds "Friedman", etc.
+### What's New in v0.0.6
+- 🐛 **CRITICAL FIX**: Priority filter was completely wrong (used markdown A/B/C, not DB priorities)
+- ✅ Priority filter now uses correct Logseq DB values: Urgent, High, Medium, Low
+- ✅ Priority query pattern updated: `[?b :logseq.property/priority ?priority] [?priority :block/title "Urgent"]`
+- ✅ Task filter now has dropdown with Logseq DB statuses: Backlog, Todo, Doing, In Review, Done, Canceled
+- ✅ Both filters match actual Logseq DB graph system (not markdown file-based graphs)
 
 ---
 
 ## Previous Releases
 
+### v0.0.5 (2025-12-26)
+- ✅ Fixed case-insensitive full-text search using regex patterns with `(?i)` flag
+- ✅ Added `escapeRegex()` helper method
+
 ### v0.0.4 (2024-12-26) [BROKEN - DO NOT USE]
 - ❌ Used `clojure.string/lower-case` which doesn't work in Logseq CLI
 - ❌ Function throws "Unknown function" error
-- ⚠️ Use v0.0.5 instead
+- ⚠️ Use v0.0.6 instead
 
 ### v0.0.3 (2024-12-26) [BROKEN - DO NOT USE]
 - ❌ Tried to call `clojure.string/lower-case` on string literal - doesn't work in Datalog
@@ -271,6 +273,6 @@ open index.html
 ---
 
 **Last Updated**: 2025-12-26
-**Version**: 0.0.5
+**Version**: 0.0.6
 **Status**: Active Development
 **Maintainer**: P. Kerim Friedman
