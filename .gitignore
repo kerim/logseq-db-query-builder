@@ -29,6 +29,10 @@ test-*.txt
 # Logs
 *.log
 
+# Documentation
+docs/
+
+
 # Editor directories and files
 .idea
 .vscode
