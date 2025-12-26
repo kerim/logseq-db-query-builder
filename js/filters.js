@@ -314,12 +314,12 @@ class FilterManager {
                         taskStatusWrapper.appendChild(label);
                     });
 
-                    // Add separator
-                    const separator = document.createElement('div');
-                    separator.className = 'checkbox-separator';
-                    taskStatusWrapper.appendChild(separator);
+                    container.appendChild(taskStatusWrapper);
 
-                    // Add "Include extensions" checkbox
+                    // Add "Include extensions" checkbox in separate column
+                    const extensionsWrapper = document.createElement('div');
+                    extensionsWrapper.className = 'extensions-checkbox-column';
+
                     const extensionsLabel = document.createElement('label');
                     extensionsLabel.className = 'checkbox-label extensions-checkbox';
 
@@ -332,10 +332,9 @@ class FilterManager {
                     });
 
                     extensionsLabel.appendChild(extensionsCheckbox);
-                    extensionsLabel.appendChild(document.createTextNode(' Include tag extensions (e.g., shopping → task)'));
-                    taskStatusWrapper.appendChild(extensionsLabel);
-
-                    container.appendChild(taskStatusWrapper);
+                    extensionsLabel.appendChild(document.createTextNode(' Include extensions (e.g., Task → shopping)'));
+                    extensionsWrapper.appendChild(extensionsLabel);
+                    container.appendChild(extensionsWrapper);
                     break;
 
                 case 'date-range':

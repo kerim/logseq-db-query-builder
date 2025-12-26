@@ -280,14 +280,19 @@ class QueryGenerator {
 
         const clauses = [];
 
-        // Add tag inheritance check if includeExtensions is true
+        // Always check for Task tag (with or without extensions)
         if (filter.includeExtensions) {
+            // Include tags that extend Task
             clauses.push(`(or-join [${entityVar}]
   (and [${entityVar} :block/tags ?t]
-       [?t :block/title "task"])
+       [?t :block/title "Task"])
   (and [${entityVar} :block/tags ?child]
        [?child :logseq.property.class/extends ?parent]
-       [?parent :block/title "task"]))`);
+       [?parent :block/title "Task"]))`);
+        } else {
+            // Only direct Task tag
+            clauses.push(`[${entityVar} :block/tags ?t]
+ [?t :block/title "Task"]`);
         }
 
         // Add status filter

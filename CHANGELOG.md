@@ -5,6 +5,27 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.10] - 2025-12-26
+
+### Fixed
+- **CRITICAL FIX**: Task filter was using lowercase "task" instead of capitalized "Task" tag name
+- Task filter now correctly checks for "Task" tag (matching Logseq DB tag naming)
+- Without extensions: finds blocks with direct "Task" tag (2 results in test graph)
+- With extensions: finds blocks with "Task" OR tags extending "Task" (6 results in test graph)
+- Fixed example text to show correct direction: "Task → shopping" (shopping extends Task)
+
+### Changed
+- Task filter ALWAYS checks for Task tag (not just when extensions enabled)
+- Extensions checkbox controls whether to include child tags, not whether to check tags at all
+- Moved extensions checkbox from bottom to right column (separate from status checkboxes)
+- Updated UI layout to match intended design with checkbox in right column
+- Removed separator line (no longer needed with column layout)
+
+### UI Improvements
+- Extensions checkbox now appears in separate column with left border
+- Cleaner visual separation between status selection and extensions toggle
+- Better use of horizontal space
+
 ## [0.0.9] - 2025-12-26
 
 ### Added

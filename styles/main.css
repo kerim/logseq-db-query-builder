@@ -368,23 +368,25 @@ section {
     accent-color: var(--accent-primary);
 }
 
-/* Separator between status checkboxes and extensions checkbox */
-.checkbox-separator {
-    height: 1px;
-    background: var(--border-color);
-    margin: var(--spacing-sm) 0;
+/* Extensions checkbox column - appears to the right of checkboxes */
+.extensions-checkbox-column {
+    display: flex;
+    align-items: flex-start;
+    padding-left: var(--spacing-md);
+    border-left: 1px solid var(--border-color);
 }
 
 /* Extensions checkbox styling */
 .extensions-checkbox {
-    margin-top: var(--spacing-xs);
     color: var(--text-secondary);
     font-size: var(--font-size-sm);
     font-style: italic;
+    white-space: nowrap;
 }
 
 .extensions-checkbox:hover {
     color: var(--text-primary);
+    background: transparent;
 }
 
 .extensions-checkbox-wrapper {
