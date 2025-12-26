@@ -186,11 +186,11 @@ Add text search operators - v0.0.2
 **ALWAYS test Datalog query patterns with the Logseq CLI BEFORE writing code:**
 
 ```bash
-# Navigate to graph directory
-cd /path/to/logseq/graph
+# Use logseq list to see available graphs
+logseq list
 
 # Test query directly
-logseq query '[:find (pull ?b [*]) :where [?b :block/title ?title] [(clojure.string/lower-case ?title) ?lower]]'
+logseq query -g "GRAPH NAME" -- '[:find (pull ?b [*]) :where [?b :block/title ?title] [(clojure.string/lower-case ?title) ?lower]]'
 
 # Verify results are correct before implementing in code
 ```
@@ -200,6 +200,11 @@ logseq query '[:find (pull ?b [*]) :where [?b :block/title ?title] [(clojure.str
 - Clojure/Datalog has specific semantics that differ from other languages
 - Testing first prevents shipping broken implementations (like v0.0.2)
 - Saves time by catching issues before writing code
+
+**Important Notes:**
+- The Logseq CLI can access graphs whether or not the Logseq desktop app is running
+- Database lock issues are NOT caused by the app being open
+- If you get "unable to open database file" errors, debug the actual issue - don't assume it's because the app is running
 
 ### Testing Before Commit
 
