@@ -28,8 +28,30 @@ When incrementing version, update in these files:
 - [ ] Create feature branch if needed (optional for small patches)
 - [ ] **TEST QUERY SYNTAX FIRST**: Before implementing, test the query pattern using `logseq query` CLI to verify it works
   - Never assume query syntax - always verify with actual Logseq CLI first
-  - Example: `logseq query '[:find (pull ?b [*]) :where ...]'` in the graph directory
+  - Example: `logseq query -g "GRAPH NAME" -- '[:find (pull ?b [*]) :where ...]'`
+  - Use `logseq list` to get available graph names
   - Prevents shipping broken implementations based on incorrect assumptions
+
+### CRITICAL: Fix Workflow Tool Issues Directly
+
+**NEVER work around broken tools - fix them first:**
+
+- **CLI not working?** Debug and fix the CLI command syntax, don't skip testing
+- **GitHub access issues?** Fix authentication, don't avoid using git
+- **Database connection failing?** Fix the connection, don't make assumptions
+- **Query syntax unclear?** Test until you understand it, don't guess
+
+**Examples of WRONG behavior:**
+- ❌ "The CLI is broken, so I'll just assume the query works"
+- ❌ "I can't test this, so let me commit and see what happens"
+- ❌ "The tool isn't working, so I'll use a workaround"
+
+**Examples of CORRECT behavior:**
+- ✅ "The CLI command failed, let me read the help and fix the syntax"
+- ✅ "I'm getting an error, let me debug it before proceeding"
+- ✅ "The test isn't working, let me fix the test setup first"
+
+**Philosophy: Tools exist to prevent mistakes. If a tool is broken, fix the tool. Don't bypass it.**
 
 ### Post-Change Checklist
 
