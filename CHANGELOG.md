@@ -5,7 +5,20 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.0.2] - 2024-12-26
+## [0.0.3] - 2024-12-26
+
+### Fixed
+- **CRITICAL BUG FIX**: Full-text search case-insensitivity was broken
+- Previously converted search term to lowercase in JavaScript, causing queries to only match lowercase text
+- Now correctly converts both title and search term to lowercase within Datalog query
+- Uses two `clojure.string/lower-case` calls to compare lowercased versions
+- Search now properly matches "Lim", "LIM", "lim" regardless of how user types search term
+
+### Changed
+- Updated `buildFullTextClause()` to use variable bindings for lowercased comparisons
+- Search term stays as-typed, lowercase conversion happens in query execution
+
+## [0.0.2] - 2024-12-26 [BROKEN - DO NOT USE]
 
 ### Added
 - Full-text search operator dropdown with "contains" and "equals" options

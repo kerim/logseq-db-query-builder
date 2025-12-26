@@ -199,17 +199,19 @@ class QueryGenerator {
 
         switch (operator) {
             case 'equals':
-                // Case-insensitive exact match using lower-case
+                // Case-insensitive exact match - compare lowercased versions
                 return `[${entityVar} :block/title ?title]
  [(clojure.string/lower-case ?title) ?title-lower]
- [(= ?title-lower "${escapedValue.toLowerCase()}")]`;
+ [(clojure.string/lower-case "${escapedValue}") ?search-lower]
+ [(= ?title-lower ?search-lower)]`;
 
             case 'contains':
             default:
-                // Case-insensitive contains using lower-case
+                // Case-insensitive contains - compare lowercased versions
                 return `[${entityVar} :block/title ?title]
  [(clojure.string/lower-case ?title) ?title-lower]
- [(clojure.string/includes? ?title-lower "${escapedValue.toLowerCase()}")]`;
+ [(clojure.string/lower-case "${escapedValue}") ?search-lower]
+ [(clojure.string/includes? ?title-lower ?search-lower)]`;
         }
     }
 

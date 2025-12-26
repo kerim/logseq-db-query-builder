@@ -1,18 +1,23 @@
 # Logseq DB Query Builder - Project Status
 
-## 🎉 v0.0.2 Released! (2024-12-26)
+## 🎉 v0.0.3 Released! (2024-12-26)
 
-**Current Version**: v0.0.2
+**Current Version**: v0.0.3
 
-### What's New in v0.0.2
-- ✅ Full-text search now has operator dropdown
-- ✅ Two operators: "contains" and "equals"
-- ✅ Both operators are case-insensitive
-- ✅ Helps distinguish exact matches from partial matches (e.g., "Lim" vs "limit")
+### What's New in v0.0.3
+- 🐛 **CRITICAL BUG FIX**: Case-insensitive search now works correctly
+- ✅ Fixed broken implementation that only matched lowercase text
+- ✅ Both title and search term now properly converted to lowercase for comparison
+- ✅ Search works regardless of capitalization (e.g., "Lim", "lim", "LIM" all match)
 
 ---
 
 ## Previous Releases
+
+### v0.0.2 (2024-12-26) [BROKEN - DO NOT USE]
+- ❌ Full-text search case-insensitivity was broken (only matched lowercase)
+- ✅ Added operator dropdown (contains/equals)
+- ⚠️ Use v0.0.3 instead
 
 ### v0.0.1 (2024-12-26)
 
@@ -252,7 +257,7 @@ open index.html
 
 ---
 
-**Last Updated**: 2024-12-26  
-**Version**: 0.0.1  
-**Status**: Active Development  
+**Last Updated**: 2024-12-26
+**Version**: 0.0.3
+**Status**: Active Development
 **Maintainer**: P. Kerim Friedman
