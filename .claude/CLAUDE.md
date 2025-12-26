@@ -26,13 +26,21 @@ When incrementing version, update in these files:
 - [ ] Determine new version number (increment PATCH for small changes, MINOR for features)
 - [ ] Verify git status is clean or has only intended changes
 - [ ] Create feature branch if needed (optional for small patches)
+- [ ] **TEST QUERY SYNTAX FIRST**: Before implementing, test the query pattern using `logseq query` CLI to verify it works
+  - Never assume query syntax - always verify with actual Logseq CLI first
+  - Example: `logseq query '[:find (pull ?b [*]) :where ...]'` in the graph directory
+  - Prevents shipping broken implementations based on incorrect assumptions
 
 ### Post-Change Checklist
 
 **After completing ANY code changes, complete this checklist:**
 
-- [ ] Update version in `index.html` (line 6)
-- [ ] Update version in `README.md`
+- [ ] **VERIFY IMPLEMENTATION**: Test the generated query using the query builder UI or manual CLI test
+  - Confirm the query syntax is correct
+  - Verify results are as expected
+  - Do NOT commit broken code
+- [ ] Update version in `index.html` (line 6 and line 15)
+- [ ] Update version in `README.md` (if version shown)
 - [ ] Update version in `docs/PROJECT_STATUS.md`
 - [ ] Update `CHANGELOG.md` with changes
 - [ ] Run git status to verify changed files
@@ -139,9 +147,30 @@ Add text search operators - v0.0.2
 
 ## Development Workflow
 
+### CRITICAL: Test Query Syntax Before Implementation
+
+**ALWAYS test Datalog query patterns with the Logseq CLI BEFORE writing code:**
+
+```bash
+# Navigate to graph directory
+cd /path/to/logseq/graph
+
+# Test query directly
+logseq query '[:find (pull ?b [*]) :where [?b :block/title ?title] [(clojure.string/lower-case ?title) ?lower]]'
+
+# Verify results are correct before implementing in code
+```
+
+**Why this is critical:**
+- Query syntax may not work as assumed
+- Clojure/Datalog has specific semantics that differ from other languages
+- Testing first prevents shipping broken implementations (like v0.0.2)
+- Saves time by catching issues before writing code
+
 ### Testing Before Commit
 
 1. **Manual Testing Checklist**:
+   - [ ] **Test query with CLI first** - Verify syntax works with real Logseq CLI
    - [ ] Open `index.html` in browser
    - [ ] Test new feature with real graph data
    - [ ] Verify query generation is correct
@@ -149,12 +178,14 @@ Add text search operators - v0.0.2
    - [ ] Test edge cases (empty input, special characters)
    - [ ] Verify theme toggle still works
    - [ ] Check existing features still work
+   - [ ] Compare generated query against working CLI version
 
-2. **Only commit after user verification**:
-   - Do NOT mark changes as complete until user has tested
-   - Wait for user confirmation that feature works
-   - Fix any issues found during user testing
+2. **Only commit after verification**:
+   - Do NOT mark changes as complete until implementation is verified
+   - Wait for user confirmation that feature works if they are testing
+   - Fix any issues found during testing
    - Only then proceed with version increment and commit
+   - Never commit broken code based on assumptions
 
 ### File Organization
 
