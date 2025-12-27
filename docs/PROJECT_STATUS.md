@@ -1,16 +1,27 @@
 # Logseq DB Query Builder - Project Status
 
-## 🎉 v0.0.16 Released! (2025-12-27)
+## 🎉 v0.0.17 Released! (2025-12-27)
 
-**Current Version**: v0.0.16
+**Current Version**: v0.0.17
 
-### What's New in v0.0.16
+### What's New in v0.0.17
+- 🚀 **Property Type Awareness - Phase 3 & 4 Complete!**
+- ✅ **Type-specific value inputs** - Property values now show appropriate UI:
+  - Reference properties → Dropdown with actual values (e.g., "Active", "Inactive")
+  - Boolean → Radio buttons (checked/unchecked)
+  - Date → Date picker + operator
+  - Number → Number input + operator
+- ✅ **Automatic correct query generation** - No more manual property identifiers!
+- ✅ **Full UUID handling** - Uses `:user.property/ProjectStatus-IUJoj7Hs` automatically
+- ✅ **Entity lookup pattern** - Reference properties use `[?b :prop ?val] [?val :block/title "value"]`
+
+### Recent Releases
+
+#### v0.0.16 (2025-12-27)
 - 🐛 **CRITICAL FIX**: Property autocomplete now actually works!
 - ✅ Fixed query result parsing bug in `getProperties()`
 - ✅ Property autocomplete now shows all 168 properties from your graph
 - ✅ Phase 2 is now fully functional
-
-### Recent Releases
 
 #### v0.0.15 (2025-12-27) - BROKEN, use v0.0.16 instead
 - ❌ Property autocomplete was broken due to parsing bug
@@ -59,19 +70,20 @@
 
 ## 🎯 Next Up: v0.1.0 - Property Type Awareness
 
-**Status**: 🚧 Phase 1-2 Complete | Phase 3-5 Pending
+**Status**: 🚧 Phase 1-4 Complete | Phase 5 Pending
 
 **Phase 1 Completed**: 2025-12-27 (v0.0.14)
-**Phase 2 Completed**: 2025-12-27 (v0.0.15)
+**Phase 2 Completed**: 2025-12-27 (v0.0.15, fixed in v0.0.16)
+**Phase 3 & 4 Completed**: 2025-12-27 (v0.0.17)
 
 ### What's Coming
 
 Transform property filtering from manual text input to intelligent, type-aware UI:
 
 #### Core Features
-- ✅ **Property name autocomplete** - Dropdown with validation against existing properties (v0.0.15)
+- ✅ **Property name autocomplete** - Dropdown with validation against existing properties (v0.0.16)
 - ✅ **Property type detection** - Automatic detection of boolean, text, reference, date, number types (v0.0.14)
-- ⏸️ **Type-specific input UI**:
+- ✅ **Type-specific input UI** (v0.0.17):
   - Checkbox properties → Radio buttons (checked/unchecked)
   - Reference properties (single) → Dropdown with actual values
   - Reference properties (multi) → Checkbox group
@@ -83,9 +95,9 @@ Transform property filtering from manual text input to intelligent, type-aware U
 #### Implementation Progress
 **5 phases** with comprehensive testing at each stage:
 1. ✅ **API Layer** - Add methods to fetch property metadata, values, and tag associations (v0.0.14)
-2. ✅ **Property Autocomplete** - Enable autocomplete for property names (v0.0.15)
-3. ⏸️ **Type-Specific Inputs** - Render appropriate UI controls based on property type
-4. ⏸️ **Query Generation** - Generate correct Datalog queries for each property type
+2. ✅ **Property Autocomplete** - Enable autocomplete for property names (v0.0.16)
+3. ✅ **Type-Specific Inputs** - Render appropriate UI controls based on property type (v0.0.17)
+4. ✅ **Query Generation** - Generate correct Datalog queries for each property type (v0.0.17)
 5. ⏸️ **Tag Suggestions** - Show property hints when tags are selected
 
 #### Documentation

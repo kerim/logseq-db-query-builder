@@ -5,6 +5,33 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.17] - 2025-12-27
+
+### Added
+- **Property Type Awareness - Phase 3 & 4 Complete!**
+- **Type-specific value inputs:**
+  - Reference properties → Dropdown (single) or checkboxes (multi) with actual values
+  - Boolean properties → Radio buttons (checked/unchecked)
+  - Date properties → Date picker + operator dropdown (=, <, >, <=, >=)
+  - Number properties → Number input + operator dropdown
+  - Text properties → Plain text input (fallback)
+- **Automatic query generation for all property types:**
+  - Reference properties use entity lookup pattern: `[?b :property ?val] [?val :block/title "value"]`
+  - Uses full property identifier with UUID automatically
+  - Boolean queries use true/false values
+  - Number/date queries include comparison operators
+- Property value autocomplete populated from actual graph data
+
+### Changed
+- Property name selection now triggers automatic schema fetch and value input re-rendering
+- Query builder now uses `filter.propertySchema.ident` (with UUID) for accurate property matching
+- Eliminated manual property identifier construction errors
+
+### Technical
+- Added 6 new rendering methods to FilterManager: renderPropertyValueInput(), renderReferenceInput(), renderCheckboxInput(), renderDateInput(), renderNumberInput(), renderTextInput()
+- Added 4 new query builders to QueryGenerator: buildBooleanPropertyClause(), buildRefPropertyClause(), buildNumberPropertyClause(), buildDatePropertyClause()
+- Property schema stored in filter.propertySchema for type-aware rendering and querying
+
 ## [0.0.16] - 2025-12-27
 
 ### Fixed

@@ -234,12 +234,31 @@ class QueryGenerator {
      * Build property clause
      */
     static buildPropertyClause(filter, entityVar) {
-        const { propertyName, operator = 'is', value } = filter;
-        
-        // Try both user.property and logseq.property namespaces
+        const { propertyName, propertySchema, operator = 'is', value } = filter;
+
+        // If we have schema info, use type-specific query generation
+        if (propertySchema && propertySchema.ident) {
+            const propIdent = propertySchema.ident;
+
+            switch (propertySchema.valueType) {
+                case ':db.type/boolean':
+                    return this.buildBooleanPropertyClause(entityVar, propIdent, value);
+
+                case ':db.type/ref':
+                    return this.buildRefPropertyClause(entityVar, propIdent, value, propertySchema.cardinality);
+
+                case ':db.type/number':
+                    return this.buildNumberPropertyClause(entityVar, propIdent, value, operator);
+
+                case ':db.type/instant':
+                    return this.buildDatePropertyClause(entityVar, propIdent, value, operator);
+            }
+        }
+
+        // Fallback: Try both user.property and logseq.property namespaces
         const userProp = `:user.property/${propertyName}`;
         const logseqProp = `:logseq.property/${propertyName}`;
-        
+
         const escapedValue = this.escapeString(value);
 
         switch (operator) {
@@ -248,17 +267,71 @@ class QueryGenerator {
                 return `(or-join [${entityVar}]
   [${entityVar} ${userProp} "${escapedValue}"]
   [${entityVar} ${logseqProp} "${escapedValue}"])`;
-            
+
             case 'contains':
                 return `(or-join [${entityVar}]
   (and [${entityVar} ${userProp} ?v1]
        [(clojure.string/includes? ?v1 "${escapedValue}")])
   (and [${entityVar} ${logseqProp} ?v2]
        [(clojure.string/includes? ?v2 "${escapedValue}")]))`;
-            
+
             default:
                 return null;
         }
+    }
+
+    /**
+     * Build boolean property clause
+     */
+    static buildBooleanPropertyClause(entityVar, propIdent, value) {
+        const boolVal = value === 'checked';
+        return `[${entityVar} ${propIdent} ${boolVal}]`;
+    }
+
+    /**
+     * Build reference property clause (entity lookup pattern)
+     */
+    static buildRefPropertyClause(entityVar, propIdent, value, cardinality) {
+        if (!value) return null;
+
+        if (Array.isArray(value) && value.length > 0) {
+            // Multiple values - OR query
+            const clauses = value.map(v => {
+                const escaped = this.escapeString(v);
+                return `(and [${entityVar} ${propIdent} ?ref] [?ref :block/title "${escaped}"])`;
+            }).join('\n  ');
+            return `(or-join [${entityVar}]
+  ${clauses})`;
+        } else {
+            // Single value - entity lookup
+            const escaped = this.escapeString(value);
+            return `[${entityVar} ${propIdent} ?val]
+ [?val :block/title "${escaped}"]`;
+        }
+    }
+
+    /**
+     * Build number property clause
+     */
+    static buildNumberPropertyClause(entityVar, propIdent, value, operator) {
+        const numVal = parseFloat(value);
+        if (isNaN(numVal)) return null;
+
+        const op = operator === 'is' ? '=' : operator;
+        return `[${entityVar} ${propIdent} ?num]
+ [(${op} ?num ${numVal})]`;
+    }
+
+    /**
+     * Build date property clause
+     */
+    static buildDatePropertyClause(entityVar, propIdent, value, operator) {
+        const timestamp = new Date(value).getTime();
+        if (isNaN(timestamp)) return null;
+
+        const op = operator === 'is' ? '=' : operator;
+        return `[${entityVar} ${propIdent} ?date]
+ [(${op} ?date ${timestamp})]`;
     }
 
     /**

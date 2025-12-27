@@ -243,15 +243,16 @@ class FilterManager {
                     propNameInput.addEventListener('input', async (e) => {
                         filter.propertyName = e.target.value;
 
-                        // Fetch schema when property selected (for future phase 3)
+                        // Fetch schema when property selected
                         if (filter.propertyName && window.app.state.graph) {
                             const schema = await window.app.api.getPropertySchema(
                                 window.app.state.graph,
                                 filter.propertyName
                             );
                             filter.propertySchema = schema;
-                            // TODO: Re-render value input based on schema (Phase 3)
-                            // this.renderPropertyValueInput(filter, container);
+
+                            // Re-render value input based on schema type
+                            this.renderPropertyValueInput(filter, container);
                         }
 
                         this.notifyChange();
@@ -412,6 +413,264 @@ class FilterManager {
                     break;
             }
         });
+    }
+
+    /**
+     * Render type-specific value input based on property schema
+     */
+    renderPropertyValueInput(filter, container) {
+        // Remove existing value input
+        const existing = container.querySelector('.property-value-input');
+        if (existing) existing.remove();
+
+        if (!filter.propertySchema) {
+            this.renderTextInput(filter, container);
+            return;
+        }
+
+        const schema = filter.propertySchema;
+
+        switch (schema.valueType) {
+            case ':db.type/boolean':
+                this.renderCheckboxInput(filter, container);
+                break;
+            case ':db.type/ref':
+                this.renderReferenceInput(filter, container, schema);
+                break;
+            case ':db.type/instant':
+                this.renderDateInput(filter, container);
+                break;
+            case ':db.type/number':
+                this.renderNumberInput(filter, container);
+                break;
+            default:
+                this.renderTextInput(filter, container);
+        }
+    }
+
+    /**
+     * Render reference property input (dropdown for single, checkboxes for multi)
+     */
+    async renderReferenceInput(filter, container, schema) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'property-value-input';
+
+        // Fetch possible values for this property
+        const values = await window.app.api.getPropertyValues(
+            window.app.state.graph,
+            filter.propertySchema.ident
+        );
+
+        if (schema.cardinality === ':db.cardinality/one') {
+            // Single value - dropdown
+            const select = document.createElement('select');
+            select.className = 'filter-input';
+
+            const emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = 'Select value...';
+            select.appendChild(emptyOption);
+
+            values.forEach(val => {
+                const option = document.createElement('option');
+                option.value = val.title;
+                option.textContent = val.title;
+                if (filter.value === val.title) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+
+            select.addEventListener('change', (e) => {
+                filter.value = e.target.value;
+                this.notifyChange();
+            });
+
+            wrapper.appendChild(select);
+        } else {
+            // Multiple values - checkboxes
+            const checkboxGroup = document.createElement('div');
+            checkboxGroup.className = 'checkbox-group';
+
+            if (!filter.value) filter.value = [];
+            if (!Array.isArray(filter.value)) filter.value = [filter.value];
+
+            values.forEach(val => {
+                const label = document.createElement('label');
+                label.className = 'checkbox-label';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = val.title;
+                checkbox.checked = filter.value.includes(val.title);
+
+                checkbox.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        if (!filter.value.includes(val.title)) {
+                            filter.value.push(val.title);
+                        }
+                    } else {
+                        filter.value = filter.value.filter(v => v !== val.title);
+                    }
+                    this.notifyChange();
+                });
+
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(' ' + val.title));
+                checkboxGroup.appendChild(label);
+            });
+
+            wrapper.appendChild(checkboxGroup);
+        }
+
+        container.appendChild(wrapper);
+    }
+
+    /**
+     * Render checkbox/boolean property input (radio buttons)
+     */
+    renderCheckboxInput(filter, container) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'property-value-input';
+
+        const radioGroup = document.createElement('div');
+        radioGroup.className = 'radio-group';
+
+        ['checked', 'unchecked'].forEach(state => {
+            const label = document.createElement('label');
+            label.className = 'radio-label';
+
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = `bool-${filter.id || Math.random()}`;
+            radio.value = state;
+            radio.checked = filter.value === state;
+
+            radio.addEventListener('change', (e) => {
+                filter.value = e.target.value;
+                this.notifyChange();
+            });
+
+            label.appendChild(radio);
+            label.appendChild(document.createTextNode(' ' + state.charAt(0).toUpperCase() + state.slice(1)));
+            radioGroup.appendChild(label);
+        });
+
+        wrapper.appendChild(radioGroup);
+        container.appendChild(wrapper);
+    }
+
+    /**
+     * Render date property input (date picker + operator)
+     */
+    renderDateInput(filter, container) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'property-value-input';
+        wrapper.style.cssText = 'display: flex; gap: var(--spacing-sm);';
+
+        // Operator dropdown
+        const operatorSelect = document.createElement('select');
+        operatorSelect.className = 'filter-input';
+        operatorSelect.style.width = '80px';
+
+        ['=', '<', '>', '<=', '>='].forEach(op => {
+            const option = document.createElement('option');
+            option.value = op;
+            option.textContent = op === '=' ? 'is' : op;
+            if (filter.operator === op || (op === '=' && !filter.operator)) {
+                option.selected = true;
+            }
+            operatorSelect.appendChild(option);
+        });
+
+        operatorSelect.addEventListener('change', (e) => {
+            filter.operator = e.target.value;
+            this.notifyChange();
+        });
+
+        // Date input
+        const dateInput = document.createElement('input');
+        dateInput.type = 'date';
+        dateInput.className = 'filter-input';
+        dateInput.style.flex = '1';
+        dateInput.value = filter.value || '';
+
+        dateInput.addEventListener('change', (e) => {
+            filter.value = e.target.value;
+            this.notifyChange();
+        });
+
+        wrapper.appendChild(operatorSelect);
+        wrapper.appendChild(dateInput);
+        container.appendChild(wrapper);
+    }
+
+    /**
+     * Render number property input (number input + operator)
+     */
+    renderNumberInput(filter, container) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'property-value-input';
+        wrapper.style.cssText = 'display: flex; gap: var(--spacing-sm);';
+
+        // Operator dropdown
+        const operatorSelect = document.createElement('select');
+        operatorSelect.className = 'filter-input';
+        operatorSelect.style.width = '80px';
+
+        ['=', '<', '>', '<=', '>='].forEach(op => {
+            const option = document.createElement('option');
+            option.value = op;
+            option.textContent = op === '=' ? 'is' : op;
+            if (filter.operator === op || (op === '=' && !filter.operator)) {
+                option.selected = true;
+            }
+            operatorSelect.appendChild(option);
+        });
+
+        operatorSelect.addEventListener('change', (e) => {
+            filter.operator = e.target.value;
+            this.notifyChange();
+        });
+
+        // Number input
+        const numberInput = document.createElement('input');
+        numberInput.type = 'number';
+        numberInput.className = 'filter-input';
+        numberInput.style.flex = '1';
+        numberInput.placeholder = 'Enter number...';
+        numberInput.value = filter.value || '';
+
+        numberInput.addEventListener('change', (e) => {
+            filter.value = e.target.value;
+            this.notifyChange();
+        });
+
+        wrapper.appendChild(operatorSelect);
+        wrapper.appendChild(numberInput);
+        container.appendChild(wrapper);
+    }
+
+    /**
+     * Render text property input (fallback)
+     */
+    renderTextInput(filter, container) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'property-value-input';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'filter-input';
+        input.placeholder = 'Property value...';
+        input.value = filter.value || '';
+
+        input.addEventListener('input', (e) => {
+            filter.value = e.target.value;
+            this.notifyChange();
+        });
+
+        wrapper.appendChild(input);
+        container.appendChild(wrapper);
     }
 
     /**
