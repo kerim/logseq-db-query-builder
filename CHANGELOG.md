@@ -5,6 +5,24 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.14] - 2025-12-27
+
+### Added
+- **Property Type Awareness - Phase 1: API Layer**
+- New API methods for property metadata and type information:
+  - `getPropertySchema(graphName, propertyName)` - Fetch property type, cardinality, and other metadata
+  - `getPropertyValues(graphName, propertyIdent)` - Get all possible values for reference properties
+  - `getTagProperties(graphName, tagName)` - Get properties associated with a tag
+
+### Changed
+- Updated `getProperties()` to return metadata objects `{title, ident, namespace}` instead of plain strings
+- Prepares foundation for type-aware UI in future phases (autocomplete, type-specific inputs)
+
+### Technical
+- Property schema queries check both `:user.property/` and `:logseq.property/` namespaces
+- All new API methods include error handling with console logging
+- Case-insensitive search filtering in updated `getProperties()` method
+
 ## [0.0.13] - 2025-12-27
 
 ### Fixed
@@ -245,13 +263,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned for v0.1.0
+### v0.1.0 - Property Type Awareness (PLANNED - Implementation Ready)
+Planning completed 2025-12-27. See `QUICKSTART_PROPERTY_TYPES.md` for implementation guide.
+
+**Planned Features:**
+- **Property name autocomplete** - Dropdown with validation against existing properties
+- **Property type detection** - Automatic detection of boolean, text, reference, date, number types
+- **Type-specific input UI** - Smart input controls based on property type:
+  - Checkbox properties: Radio buttons (checked/unchecked)
+  - Reference properties (single): Dropdown with actual values
+  - Reference properties (multi): Checkbox group
+  - Date properties: Date picker with operator dropdown (=, <, >, <=, >=)
+  - Number properties: Number input with operator dropdown
+  - Text properties: Text input (fallback)
+- **Tag-based property suggestions** - Show hint with associated properties when tag is selected
+
+**Implementation Plan:** 5 phases (API layer → autocomplete → type inputs → query generation → tag suggestions)
+**Full Details:** `/Users/niyaro/.claude/plans/cryptic-watching-mccarthy.md`
+
+### Planned for v0.2.0
 - ~~Text search operators (equals, starts-with, ends-with, regex)~~ Partially done: contains/equals in v0.0.2
 - More text search operators (starts-with, ends-with, regex)
 - Boolean logic support (AND/OR/NOT)
 - Nested filter groups
-- Property type awareness
-- Property name autocomplete
 - Enhanced tag autocomplete with hierarchy
 
 ### Future Versions

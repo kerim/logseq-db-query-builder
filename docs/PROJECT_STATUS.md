@@ -1,16 +1,98 @@
 # Logseq DB Query Builder - Project Status
 
-## 🎉 v0.0.7 Released! (2025-12-26)
+## 🎉 v0.0.14 Released! (2025-12-27)
 
-**Current Version**: v0.0.7
+**Current Version**: v0.0.14
 
-### What's New in v0.0.7
+### What's New in v0.0.14
+- 🚀 **Property Type Awareness - Phase 1 Complete!**
+- ✅ New API methods for property metadata: `getPropertySchema()`, `getPropertyValues()`, `getTagProperties()`
+- ✅ Updated `getProperties()` to return metadata objects with type information
+- ✅ Foundation for type-aware UI (autocomplete, type-specific inputs coming in future phases)
+
+### Recent Releases
+
+#### v0.0.13 (2025-12-27)
+- 🐛 **CRITICAL FIX**: Clear stale results when filters change
+- ✅ Prevents confusion from seeing old search results that don't match current filter settings
+- ✅ Shows message "Filters changed - click Search to update results" when filters are modified
+- ✅ User must click Search button to see updated results after changing filters
+
+#### v0.0.12 (2025-12-27)
+- ✅ UI Layout: Stacked both checkboxes vertically in the same column
+- ✅ Better visual separation between status selection and extensions toggle
+
+#### v0.0.11 (2025-12-27)
+- ✅ **Second checkbox for task filter**: "Include all status properties" alongside existing "Include extensions"
+- ✅ Independent control over tag inheritance and class property matching
+- ✅ Three-branch or-join query logic for flexible task filtering
+
+#### v0.0.10 (2025-12-26)
+- 🐛 **CRITICAL FIX**: Task filter was using lowercase "task" instead of capitalized "Task" tag name
+- ✅ Task filter now correctly checks for "Task" tag (matching Logseq DB tag naming)
+
+#### v0.0.9 (2025-12-26)
+- ✅ **Tag inheritance support**: New "Include extensions" checkbox for task and tags filters
+- ✅ Uses `or-join` with `:logseq.property.class/extends` to query tag hierarchy
+
+#### v0.0.8 (2025-12-26)
+- ✅ **UUID resolution**: Block references in results now show readable titles
+- ✅ Multi-select support for priority filter
+- ✅ Checkbox-based UI for task status and priority filters
+
+#### v0.0.7 (2025-12-26)
 - 🐛 **CRITICAL FIX**: Task status query was completely broken (used `:block/tags` instead of `:logseq.property/status`)
 - ✅ Task status now correctly queries the status property with entity lookup
-- ✅ Query pattern: `[?b :logseq.property/status ?status] [?status :block/title "Doing"]`
-- ✅ **Multi-select support** - Select multiple statuses at once (e.g., Doing OR Todo)
-- ✅ Dropdown shows all 6 statuses simultaneously for easy multi-selection
-- ✅ OR query generation for multiple selected statuses
+- ✅ **Multi-select support** - Select multiple statuses at once
+
+---
+
+## 🎯 Next Up: v0.1.0 - Property Type Awareness
+
+**Status**: 🚧 Phase 1 Complete | Phase 2-5 Pending
+
+**Phase 1 Completed**: 2025-12-27
+
+### What's Coming
+
+Transform property filtering from manual text input to intelligent, type-aware UI:
+
+#### Core Features
+- ✅ **Property name autocomplete** - Dropdown with validation against existing properties
+- ✅ **Property type detection** - Automatic detection of boolean, text, reference, date, number types
+- ✅ **Type-specific input UI**:
+  - Checkbox properties → Radio buttons (checked/unchecked)
+  - Reference properties (single) → Dropdown with actual values
+  - Reference properties (multi) → Checkbox group
+  - Date properties → Date picker + operator dropdown (=, <, >, <=, >=)
+  - Number properties → Number input + operator dropdown
+  - Text properties → Text input (fallback)
+- ✅ **Tag-based property suggestions** - Show hint with associated properties when tag is selected
+
+#### Implementation Progress
+**5 phases** with comprehensive testing at each stage:
+1. ✅ **API Layer** - Add methods to fetch property metadata, values, and tag associations (v0.0.14)
+2. ⏸️ **Property Autocomplete** - Enable autocomplete for property names
+3. ⏸️ **Type-Specific Inputs** - Render appropriate UI controls based on property type
+4. ⏸️ **Query Generation** - Generate correct Datalog queries for each property type
+5. ⏸️ **Tag Suggestions** - Show property hints when tags are selected
+
+#### Documentation
+- **Quickstart Guide**: `QUICKSTART_PROPERTY_TYPES.md` - Concise implementation guide
+- **Full Implementation Plan**: `/Users/niyaro/.claude/plans/cryptic-watching-mccarthy.md` - Detailed technical specifications
+
+#### Estimated Effort
+- **Time**: 10-15 hours (2-3 hours per phase)
+- **Code**: ~400-500 lines across 4 files
+- **Files Modified**: js/api.js, js/filters.js, js/queryGenerator.js, js/autocomplete.js
+
+#### User Decisions (Approved)
+- ✅ Show operator dropdown for numeric/date properties (=, <, >, <=, >=)
+- ✅ Only allow existing properties (validation required, no freeform input)
+- ✅ Show property suggestions when tag is selected
+
+#### Ready to Start
+All planning, investigation, and user decisions are complete. Implementation can begin immediately following the quickstart guide.
 
 ---
 

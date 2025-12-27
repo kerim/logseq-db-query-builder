@@ -221,17 +221,31 @@ logseq query 'GENERATED_QUERY_HERE' -g "YOUR_GRAPH_NAME" | jet --to json
 
 ## Roadmap
 
-### Phase 1 (Current)
+### v0.0.x - Current (Completed)
 - ✅ Basic filter types
 - ✅ Query generation
 - ✅ Live results
 - ✅ Auto-complete for tags/pages
 - ✅ Dark/light theme
+- ✅ Multi-select filters (status, priority)
+- ✅ Tag inheritance support
+- ✅ UUID resolution in results
 
-### Phase 2 (Future)
+### v0.1.0 - Property Type Awareness (Planned - Ready to Implement)
+**Status**: Planning complete, implementation ready to begin
+
+See `QUICKSTART_PROPERTY_TYPES.md` for implementation guide.
+
+**Features**:
+- [ ] Property name autocomplete with validation
+- [ ] Property type detection (boolean, text, reference, date, number)
+- [ ] Type-specific input UI (checkboxes, dropdowns, date pickers, number inputs)
+- [ ] Operator support for numeric/date properties (=, <, >, <=, >=)
+- [ ] Tag-based property suggestions
+
+### v0.2.0 - Future
 - [ ] AND/OR/NOT logic per filter
-- [ ] Property name autocomplete
-- [ ] Tag inheritance queries
+- [ ] Nested filter groups
 - [ ] Sort options
 - [ ] Save/load query presets
 - [ ] Reverse query parsing (paste query → populate UI)

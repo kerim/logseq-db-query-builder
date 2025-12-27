@@ -172,24 +172,24 @@ class LogseqAPI {
     }
 
     /**
-     * Get property names from graph
-     * Note: This is a simplified version - in Phase 1 we'll use manual input
+     * Get property names and metadata from graph
      * @param {string} graphName - Name of the graph
      * @param {string} searchTerm - Optional search filter
+     * @returns {Promise<Array>} Array of {title, ident, namespace} objects
      */
     async getProperties(graphName, searchTerm = '') {
         try {
             // This query gets all property namespaces
             // We'll extract unique property names from the namespaces
-            const query = `[:find ?prop 
-                            :where 
-                            [?b ?prop ?v] 
+            const query = `[:find ?prop
+                            :where
+                            [?b ?prop ?v]
                             [(namespace ?prop)]]`;
 
             const result = await this.executeQuery(graphName, query);
-            
+
             // Extract property names and filter
-            const props = new Set();
+            const propsMap = new Map();
             result.data.forEach(item => {
                 const prop = item[0];
                 if (prop) {
@@ -198,22 +198,108 @@ class LogseqAPI {
                     // e.g., ":user.property/email-Abc123" -> "email"
                     const parts = prop.split('/');
                     if (parts.length === 2) {
+                        const namespace = parts[0].replace(':', '');
                         let propName = parts[1];
                         // Remove UUID suffix from user properties
                         // e.g., "email-Abc123" -> "email"
-                        propName = propName.replace(/-[A-Za-z0-9_]+$/, '');
-                        
-                        if (!searchTerm || propName.includes(searchTerm)) {
-                            props.add(propName);
+                        const cleanName = propName.replace(/-[A-Za-z0-9_]+$/, '');
+
+                        if (!searchTerm || cleanName.toLowerCase().includes(searchTerm.toLowerCase())) {
+                            // Use cleanName as key to deduplicate
+                            if (!propsMap.has(cleanName)) {
+                                propsMap.set(cleanName, {
+                                    title: cleanName,
+                                    ident: prop,
+                                    namespace: namespace
+                                });
+                            }
                         }
                     }
                 }
             });
-            
-            return Array.from(props).sort();
+
+            return Array.from(propsMap.values()).sort((a, b) => a.title.localeCompare(b.title));
         } catch (error) {
             console.error('Failed to get properties:', error);
             throw error;
+        }
+    }
+
+    /**
+     * Get property schema (type, cardinality, etc.)
+     * @param {string} graphName - Name of the graph
+     * @param {string} propertyName - Property name (without namespace)
+     * @returns {Promise<Object|null>} Property schema or null if not found
+     */
+    async getPropertySchema(graphName, propertyName) {
+        try {
+            const query = `[:find (pull ?p [*])
+                            :where
+                            (or
+                              [?p :db/ident :user.property/${propertyName}]
+                              [?p :db/ident :logseq.property/${propertyName}])]`;
+
+            const result = await this.executeQuery(graphName, query);
+            if (result.data.length > 0) {
+                const schema = result.data[0][0];
+                return {
+                    name: schema[':block/title'],
+                    ident: schema[':db/ident'],
+                    valueType: schema[':db/valueType'],
+                    cardinality: schema[':db/cardinality']
+                };
+            }
+            return null;
+        } catch (error) {
+            console.error('Failed to get property schema:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Get all possible values for a reference property
+     * @param {string} graphName - Name of the graph
+     * @param {string} propertyIdent - Full property identifier (e.g., ":logseq.property/status")
+     * @returns {Promise<Array>} Array of {title, id} objects
+     */
+    async getPropertyValues(graphName, propertyIdent) {
+        try {
+            const query = `[:find (pull ?val [:block/title :db/id])
+                            :where
+                            [_ ${propertyIdent} ?val]]`;
+
+            const result = await this.executeQuery(graphName, query);
+            return result.data.map(item => ({
+                title: item[0][':block/title'],
+                id: item[0][':db/id']
+            }));
+        } catch (error) {
+            console.error('Failed to get property values:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get properties associated with a tag
+     * @param {string} graphName - Name of the graph
+     * @param {string} tagName - Tag name
+     * @returns {Promise<Array>} Array of property identifiers
+     */
+    async getTagProperties(graphName, tagName) {
+        try {
+            const query = `[:find (pull ?tag [:logseq.property.class/properties])
+                            :where
+                            [?tag :block/title "${tagName}"]]`;
+
+            const result = await this.executeQuery(graphName, query);
+            if (result.data.length > 0) {
+                const props = result.data[0][0][':logseq.property.class/properties'];
+                return props || [];
+            }
+            return [];
+        } catch (error) {
+            console.error('Failed to get tag properties:', error);
+            return [];
         }
     }
 
