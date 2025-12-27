@@ -10,7 +10,8 @@ class Autocomplete {
         this.suggestions = [];
         this.debounceTimer = null;
         this.dropdownElement = null;
-        
+        this.justSelected = false;  // Prevent re-trigger after selection
+
         this.init();
     }
 
@@ -46,15 +47,27 @@ class Autocomplete {
      * Attach autocomplete to an input element
      * @param {HTMLInputElement} input - Input element
      * @param {string} graphName - Graph name for queries
-     * @param {string} type - Type of autocomplete (tags, page-reference)
+     * @param {string} type - Type of autocomplete (tags, page-reference, property)
      */
     attach(input, graphName, type) {
+        // Prevent duplicate attachment
+        if (input.hasAttribute('data-autocomplete-attached')) {
+            return;
+        }
+        input.setAttribute('data-autocomplete-attached', 'true');
+
         input.addEventListener('input', async (e) => {
             const value = e.target.value;
-            
+
+            // Skip if we just selected (prevents re-trigger)
+            if (this.justSelected) {
+                this.justSelected = false;
+                return;
+            }
+
             // Debounce the search
             clearTimeout(this.debounceTimer);
-            
+
             if (value.length < 2) {
                 this.hide();
                 return;
@@ -173,6 +186,9 @@ class Autocomplete {
         if (index >= 0 && index < this.suggestions.length) {
             const suggestion = this.suggestions[index];
             if (this.activeInput) {
+                // Set flag BEFORE dispatching event to prevent re-trigger
+                this.justSelected = true;
+
                 this.activeInput.value = suggestion.value;
                 // Store ident as data attribute for property autocomplete
                 if (suggestion.ident) {

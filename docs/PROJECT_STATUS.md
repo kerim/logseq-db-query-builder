@@ -1,21 +1,35 @@
 # Logseq DB Query Builder - Project Status
 
-## 🎉 v0.0.17 Released! (2025-12-27)
+## 🎉 v0.0.21 Released! (2025-12-27)
 
-**Current Version**: v0.0.17
+**Current Version**: v0.0.21
 
-### What's New in v0.0.17
-- 🚀 **Property Type Awareness - Phase 3 & 4 Complete!**
-- ✅ **Type-specific value inputs** - Property values now show appropriate UI:
-  - Reference properties → Dropdown with actual values (e.g., "Active", "Inactive")
-  - Boolean → Radio buttons (checked/unchecked)
-  - Date → Date picker + operator
-  - Number → Number input + operator
-- ✅ **Automatic correct query generation** - No more manual property identifiers!
-- ✅ **Full UUID handling** - Uses `:user.property/ProjectStatus-IUJoj7Hs` automatically
-- ✅ **Entity lookup pattern** - Reference properties use `[?b :prop ?val] [?val :block/title "value"]`
+### What's New in v0.0.21
+- 🐛 **CRITICAL FIX**: Property autocomplete dropdown no longer re-appears after selection
+- ✅ Fixed async race condition preventing property value dropdowns from appearing
+- ✅ Property value dropdowns should now work correctly for reference properties
+- ✅ Added debug logging to track property type detection
 
 ### Recent Releases
+
+#### v0.0.20 (2025-12-27)
+- 🐛 **CRITICAL FIX**: Property type detection now works for user properties
+- ✅ Changed from schema lookup to type inference from sample values
+- ✅ Infers type from actual property usage instead of schema entities
+
+#### v0.0.19 (2025-12-27)
+- 🐛 **CRITICAL FIX**: Property identifiers now include UUID suffixes
+- ✅ Autocomplete passes full property identifier (e.g., `:user.property/ProjectStatus-IUJoj7Hs`)
+
+#### v0.0.18 (2025-12-27)
+- 🐛 **FIX**: Removed duplicate property value inputs
+- ✅ Property filters no longer render generic value input
+
+#### v0.0.17 (2025-12-27)
+- 🚀 **Property Type Awareness - Phase 3 & 4 Complete!**
+- ✅ **Type-specific value inputs** - Property values now show appropriate UI
+- ✅ **Automatic correct query generation** - No more manual property identifiers
+- ✅ **Full UUID handling** and **Entity lookup pattern**
 
 #### v0.0.16 (2025-12-27)
 - 🐛 **CRITICAL FIX**: Property autocomplete now actually works!

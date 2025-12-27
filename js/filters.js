@@ -258,42 +258,47 @@ class FilterManager {
 
                         // Infer property type from actual usage
                         if (propertyIdent && window.app.state.graph) {
-                            // Get a sample value to infer the type
-                            const sampleQuery = `[:find (pull ?b [${propertyIdent}]) :where [?b ${propertyIdent}] :limit 1]`;
-                            const sampleResult = await window.app.api.executeQuery(window.app.state.graph, sampleQuery);
+                            try {
+                                // Get a sample value to infer the type
+                                const sampleQuery = `[:find (pull ?b [${propertyIdent}]) :where [?b ${propertyIdent}] :limit 1]`;
+                                const sampleResult = await window.app.api.executeQuery(window.app.state.graph, sampleQuery);
 
-                            if (sampleResult.data.length > 0) {
-                                const sampleValue = sampleResult.data[0][0][propertyIdent];
+                                if (sampleResult.data.length > 0) {
+                                    const sampleValue = sampleResult.data[0][0][propertyIdent];
 
-                                // Infer type from sample value
-                                let valueType = ':db.type/string';  // default
-                                let cardinality = ':db.cardinality/one';
+                                    // Infer type from sample value
+                                    let valueType = ':db.type/string';  // default
+                                    let cardinality = ':db.cardinality/one';
 
-                                if (Array.isArray(sampleValue)) {
-                                    cardinality = ':db.cardinality/many';
-                                    if (sampleValue.length > 0 && typeof sampleValue[0] === 'object' && sampleValue[0][':db/id']) {
+                                    if (Array.isArray(sampleValue)) {
+                                        cardinality = ':db.cardinality/many';
+                                        if (sampleValue.length > 0 && typeof sampleValue[0] === 'object' && sampleValue[0][':db/id']) {
+                                            valueType = ':db.type/ref';
+                                        }
+                                    } else if (typeof sampleValue === 'object' && sampleValue[':db/id']) {
                                         valueType = ':db.type/ref';
+                                    } else if (typeof sampleValue === 'boolean') {
+                                        valueType = ':db.type/boolean';
+                                    } else if (typeof sampleValue === 'number') {
+                                        valueType = ':db.type/number';
                                     }
-                                } else if (typeof sampleValue === 'object' && sampleValue[':db/id']) {
-                                    valueType = ':db.type/ref';
-                                } else if (typeof sampleValue === 'boolean') {
-                                    valueType = ':db.type/boolean';
-                                } else if (typeof sampleValue === 'number') {
-                                    valueType = ':db.type/number';
+
+                                    filter.propertySchema = {
+                                        name: filter.propertyName,
+                                        ident: propertyIdent,
+                                        valueType: valueType,
+                                        cardinality: cardinality
+                                    };
+
+                                    // Re-render value input based on inferred type
+                                    this.renderPropertyValueInput(filter, container);
                                 }
-
-                                filter.propertySchema = {
-                                    name: filter.propertyName,
-                                    ident: propertyIdent,
-                                    valueType: valueType,
-                                    cardinality: cardinality
-                                };
-
-                                // Re-render value input based on inferred type
-                                this.renderPropertyValueInput(filter, container);
+                            } catch (error) {
+                                console.error('Failed to infer property type:', error);
                             }
                         }
 
+                        // MOVED TO END: Call after async operations complete
                         this.notifyChange();
                     });
                     container.appendChild(propNameInput);
@@ -458,22 +463,30 @@ class FilterManager {
      * Render type-specific value input based on property schema
      */
     renderPropertyValueInput(filter, container) {
+        console.log('renderPropertyValueInput called', {
+            hasSchema: !!filter.propertySchema,
+            schema: filter.propertySchema
+        });
+
         // Remove existing value input
         const existing = container.querySelector('.property-value-input');
         if (existing) existing.remove();
 
         if (!filter.propertySchema) {
+            console.log('No schema, rendering text input');
             this.renderTextInput(filter, container);
             return;
         }
 
         const schema = filter.propertySchema;
+        console.log('Rendering type-specific input for', schema.valueType);
 
         switch (schema.valueType) {
             case ':db.type/boolean':
                 this.renderCheckboxInput(filter, container);
                 break;
             case ':db.type/ref':
+                console.log('Rendering reference input');
                 this.renderReferenceInput(filter, container, schema);
                 break;
             case ':db.type/instant':

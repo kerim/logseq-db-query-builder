@@ -5,6 +5,26 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.21] - 2025-12-27
+
+### Fixed
+- **CRITICAL FIX**: Property autocomplete dropdown no longer re-appears after selection
+- Fixed async race condition where `notifyChange()` fired before property schema was set
+- Fixed duplicate autocomplete attachment on same input element
+- Property value dropdowns should now appear correctly after selecting property name
+
+### Changed
+- Added `justSelected` flag to prevent autocomplete re-triggering after selection
+- Moved `notifyChange()` call to end of async event handler
+- Wrapped schema inference in try-catch for better error handling
+- Added duplicate attachment prevention with `data-autocomplete-attached` attribute
+
+### Technical
+- `Autocomplete.selectSuggestion()` now sets `justSelected` flag before dispatching input event
+- Input handler checks `justSelected` flag and skips processing if true
+- Property-name handler now calls `notifyChange()` only after async operations complete
+- Added console logging to `renderPropertyValueInput()` for debugging
+
 ## [0.0.20] - 2025-12-27
 
 ### Fixed
