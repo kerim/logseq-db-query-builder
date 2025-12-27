@@ -292,14 +292,17 @@ class FilterManager {
 
                                     // Re-render value input based on inferred type
                                     this.renderPropertyValueInput(filter, container);
+
+                                    // Call notifyChange AFTER schema is set and value input is rendered
+                                    this.notifyChange();
                                 }
                             } catch (error) {
                                 console.error('Failed to infer property type:', error);
                             }
+                        } else {
+                            // No property ident - call notifyChange for property name change
+                            this.notifyChange();
                         }
-
-                        // MOVED TO END: Call after async operations complete
-                        this.notifyChange();
                     });
                     container.appendChild(propNameInput);
                     break;

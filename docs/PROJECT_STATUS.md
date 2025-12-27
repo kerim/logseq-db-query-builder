@@ -1,16 +1,21 @@
 # Logseq DB Query Builder - Project Status
 
-## 🎉 v0.0.21 Released! (2025-12-27)
+## 🎉 v0.0.22 Released! (2025-12-27)
 
-**Current Version**: v0.0.21
+**Current Version**: v0.0.22
 
-### What's New in v0.0.21
-- 🐛 **CRITICAL FIX**: Property autocomplete dropdown no longer re-appears after selection
-- ✅ Fixed async race condition preventing property value dropdowns from appearing
-- ✅ Property value dropdowns should now work correctly for reference properties
-- ✅ Added debug logging to track property type detection
+### What's New in v0.0.22
+- 🐛 **CRITICAL FIX**: Property value dropdowns now appear correctly!
+- ✅ Fixed async timing issue - `notifyChange()` now waits for schema to be set
+- ✅ Reference properties now show dropdown with actual values ("Active", "Inactive", etc.)
+- ✅ Schema is fully populated before UI updates
 
 ### Recent Releases
+
+#### v0.0.21 (2025-12-27)
+- 🐛 **CRITICAL FIX**: Property autocomplete dropdown no longer re-appears after selection
+- ✅ Fixed duplicate autocomplete attachment
+- ✅ Added debug logging to track property type detection
 
 #### v0.0.20 (2025-12-27)
 - 🐛 **CRITICAL FIX**: Property type detection now works for user properties

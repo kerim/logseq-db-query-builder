@@ -5,6 +5,23 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.22] - 2025-12-27
+
+### Fixed
+- **CRITICAL FIX**: Property value dropdowns now appear correctly after selecting property name
+- Fixed async timing issue where `notifyChange()` fired before schema was populated
+- Schema is now fully set before UI updates are triggered
+
+### Changed
+- Moved `notifyChange()` call inside async block (after line 294)
+- Added `notifyChange()` to else block when no property identifier exists
+- Ensures filter state updates only after async schema inference completes
+
+### Technical
+- `notifyChange()` at line 297 now executes AFTER `await` completes and schema is set
+- Added fallback `notifyChange()` at line 304 for when user types property name without autocomplete
+- Fixes race condition where UI updated without schema data
+
 ## [0.0.21] - 2025-12-27
 
 ### Fixed
