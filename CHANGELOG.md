@@ -5,6 +5,28 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.11] - 2025-12-27
+
+### Added
+- **Second checkbox for task filter**: "Include all status properties" alongside existing "Include extensions"
+- Independent control over tag inheritance and class property matching
+- Three-branch or-join query logic: direct Task tag + optional extends branch + optional status property branch
+- Four distinct query configurations possible:
+  - Neither checked: Only direct Task tag (2 results in test graph)
+  - Only "Include extensions": Task + tags extending Task (6 results)
+  - Only "Include all status properties": Task + tags with status property (6 results)
+  - Both checked: All three branches (7 results, matching Logseq's behavior)
+
+### Changed
+- Updated `buildTaskClause()` to handle both checkboxes independently with conditional or-join branches
+- Increased margin between status checkboxes and extensions column (from 16px to 32px)
+- Extensions column now uses `var(--spacing-xl)` for better visual separation
+
+### Technical
+- Added `filter.includeAllStatusProperties` boolean property to filter objects
+- Query dynamically builds or-join with 1-3 branches based on checkbox states
+- Third branch checks for `:logseq.property.class/properties :logseq.property/status`
+
 ## [0.0.10] - 2025-12-26
 
 ### Fixed

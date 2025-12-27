@@ -372,7 +372,7 @@ section {
 .extensions-checkbox-column {
     display: flex;
     align-items: flex-start;
-    padding-left: var(--spacing-md);
+    padding-left: var(--spacing-xl);
     border-left: 1px solid var(--border-color);
 }
 

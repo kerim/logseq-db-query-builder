@@ -334,6 +334,24 @@ class FilterManager {
                     extensionsLabel.appendChild(extensionsCheckbox);
                     extensionsLabel.appendChild(document.createTextNode(' Include extensions (e.g., Task → shopping)'));
                     extensionsWrapper.appendChild(extensionsLabel);
+
+                    // Add "Include all status properties" checkbox
+                    const allStatusLabel = document.createElement('label');
+                    allStatusLabel.className = 'checkbox-label extensions-checkbox';
+
+                    const allStatusCheckbox = document.createElement('input');
+                    allStatusCheckbox.type = 'checkbox';
+                    allStatusCheckbox.checked = filter.includeAllStatusProperties || false;
+                    allStatusCheckbox.addEventListener('change', (e) => {
+                        filter.includeAllStatusProperties = e.target.checked;
+                        this.notifyChange();
+                    });
+
+                    allStatusLabel.appendChild(allStatusCheckbox);
+                    allStatusLabel.appendChild(document.createTextNode(' Include all status properties'));
+                    extensionsWrapper.appendChild(document.createElement('br'));
+                    extensionsWrapper.appendChild(allStatusLabel);
+
                     container.appendChild(extensionsWrapper);
                     break;
 

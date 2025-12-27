@@ -280,19 +280,37 @@ class QueryGenerator {
 
         const clauses = [];
 
-        // Always check for Task tag (with or without extensions)
-        if (filter.includeExtensions) {
-            // Include tags that extend Task
-            clauses.push(`(or-join [${entityVar}]
-  (and [${entityVar} :block/tags ?t]
-       [?t :block/title "Task"])
-  (and [${entityVar} :block/tags ?child]
-       [?child :logseq.property.class/extends ?parent]
-       [?parent :block/title "Task"]))`);
-        } else {
-            // Only direct Task tag
+        // Build tag filter based on checkbox states
+        const hasExtensions = filter.includeExtensions || false;
+        const hasAllStatus = filter.includeAllStatusProperties || false;
+
+        if (!hasExtensions && !hasAllStatus) {
+            // Neither checked: Only direct Task tag
             clauses.push(`[${entityVar} :block/tags ?t]
  [?t :block/title "Task"]`);
+        } else {
+            // Build or-join with appropriate branches
+            const branches = [];
+
+            // Always include direct Task tag
+            branches.push(`(and [${entityVar} :block/tags ?t]
+       [?t :block/title "Task"])`);
+
+            // Add extends branch if checked
+            if (hasExtensions) {
+                branches.push(`(and [${entityVar} :block/tags ?child]
+       [?child :logseq.property.class/extends ?parent]
+       [?parent :block/title "Task"])`);
+            }
+
+            // Add class properties branch if checked
+            if (hasAllStatus) {
+                branches.push(`(and [${entityVar} :block/tags ?tag]
+       [?tag :logseq.property.class/properties :logseq.property/status])`);
+            }
+
+            clauses.push(`(or-join [${entityVar}]
+  ${branches.join('\n  ')})`);
         }
 
         // Add status filter
