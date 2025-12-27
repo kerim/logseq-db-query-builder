@@ -180,6 +180,15 @@ class App {
     onFiltersChange(filters) {
         this.state.filters = filters;
         this.generateQuery();
+
+        // Clear results when filters change to avoid showing stale results
+        if (this.state.results.length > 0) {
+            const container = document.getElementById('results-container');
+            container.innerHTML = '<div class="empty-state"><p>Filters changed - click Search to update results.</p></div>';
+            document.getElementById('result-count').textContent = '0 items found';
+            this.state.results = [];
+            this.state.resultCount = 0;
+        }
     }
 
     /**

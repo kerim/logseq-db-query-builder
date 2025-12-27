@@ -5,6 +5,17 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.13] - 2025-12-27
+
+### Fixed
+- **Clear stale results when filters change**: Results now clear when checkboxes or filters are modified
+- Prevents confusion from seeing old search results that don't match current filter settings
+- Shows message "Filters changed - click Search to update results" when filters are modified
+
+### Changed
+- `onFiltersChange()` now clears existing results to avoid displaying stale data
+- User must click Search button to see updated results after changing filters
+
 ## [0.0.12] - 2025-12-27
 
 ### Changed
