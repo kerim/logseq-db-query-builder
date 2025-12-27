@@ -1,17 +1,20 @@
 # Logseq DB Query Builder - Project Status
 
-## 🎉 v0.0.15 Released! (2025-12-27)
+## 🎉 v0.0.16 Released! (2025-12-27)
 
-**Current Version**: v0.0.15
+**Current Version**: v0.0.16
 
-### What's New in v0.0.15
-- 🚀 **Property Type Awareness - Phase 2 Complete!**
-- ✅ Property name autocomplete dropdown with suggestions
-- ✅ Type to search and select from existing properties
-- ✅ Automatic property schema fetching (prepares for type-specific UI in Phase 3)
-- ✅ Better UX with "Select property..." placeholder
+### What's New in v0.0.16
+- 🐛 **CRITICAL FIX**: Property autocomplete now actually works!
+- ✅ Fixed query result parsing bug in `getProperties()`
+- ✅ Property autocomplete now shows all 168 properties from your graph
+- ✅ Phase 2 is now fully functional
 
 ### Recent Releases
+
+#### v0.0.15 (2025-12-27) - BROKEN, use v0.0.16 instead
+- ❌ Property autocomplete was broken due to parsing bug
+- Added autocomplete UI but `getProperties()` returned empty array
 
 #### v0.0.14 (2025-12-27)
 - 🚀 **Property Type Awareness - Phase 1 Complete!**

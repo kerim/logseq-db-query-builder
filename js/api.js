@@ -191,7 +191,7 @@ class LogseqAPI {
             // Extract property names and filter
             const propsMap = new Map();
             result.data.forEach(item => {
-                const prop = item[0];
+                const prop = item;  // item is already a string, not an array
                 if (prop) {
                     // Extract property name from namespace
                     // e.g., ":logseq.property/name" -> "name"

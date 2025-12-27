@@ -5,6 +5,19 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.16] - 2025-12-27
+
+### Fixed
+- **CRITICAL BUG**: Property autocomplete was completely broken in v0.0.15
+- Fixed `getProperties()` parsing - query returns strings, not arrays
+- Changed `item[0]` to `item` when processing query results
+- Property autocomplete now works correctly with all 168 properties
+
+### Technical
+- The Logseq query `[:find ?prop ...]` returns flat strings like `["logseq.property/priority"]`
+- Previous code incorrectly expected nested arrays like `[["logseq.property/priority"]]`
+- Bug caused `item[0]` to extract first character "l" instead of full property name
+
 ## [0.0.15] - 2025-12-27
 
 ### Added
