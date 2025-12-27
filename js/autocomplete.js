@@ -102,6 +102,14 @@ class Autocomplete {
                 }));
                 break;
 
+            case 'property':
+                const props = await this.api.getProperties(graphName, searchTerm);
+                this.suggestions = props.map(p => ({
+                    label: p.title,
+                    value: p.title
+                }));
+                break;
+
             default:
                 console.warn('Unknown autocomplete type:', type);
         }

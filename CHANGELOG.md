@@ -5,6 +5,24 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.15] - 2025-12-27
+
+### Added
+- **Property Type Awareness - Phase 2: Property Name Autocomplete**
+- Property name input now shows autocomplete dropdown with suggestions
+- Type to search and select from existing properties in your graph
+- Automatic property schema fetching when property is selected (prepares for Phase 3)
+
+### Changed
+- Property name input placeholder updated to "Select property..." for better UX
+- Property name input handler is now async to support schema fetching
+- Added 'property' case to autocomplete.js fetchSuggestions() method
+
+### Technical
+- Property name input has `data-autocomplete="property"` attribute
+- Property schema stored in `filter.propertySchema` for future type-specific UI (Phase 3)
+- Autocomplete uses existing infrastructure from tags/page-reference autocomplete
+
 ## [0.0.14] - 2025-12-27
 
 ### Added

@@ -1,16 +1,23 @@
 # Logseq DB Query Builder - Project Status
 
-## 🎉 v0.0.14 Released! (2025-12-27)
+## 🎉 v0.0.15 Released! (2025-12-27)
 
-**Current Version**: v0.0.14
+**Current Version**: v0.0.15
 
-### What's New in v0.0.14
+### What's New in v0.0.15
+- 🚀 **Property Type Awareness - Phase 2 Complete!**
+- ✅ Property name autocomplete dropdown with suggestions
+- ✅ Type to search and select from existing properties
+- ✅ Automatic property schema fetching (prepares for type-specific UI in Phase 3)
+- ✅ Better UX with "Select property..." placeholder
+
+### Recent Releases
+
+#### v0.0.14 (2025-12-27)
 - 🚀 **Property Type Awareness - Phase 1 Complete!**
 - ✅ New API methods for property metadata: `getPropertySchema()`, `getPropertyValues()`, `getTagProperties()`
 - ✅ Updated `getProperties()` to return metadata objects with type information
 - ✅ Foundation for type-aware UI (autocomplete, type-specific inputs coming in future phases)
-
-### Recent Releases
 
 #### v0.0.13 (2025-12-27)
 - 🐛 **CRITICAL FIX**: Clear stale results when filters change
@@ -49,30 +56,31 @@
 
 ## 🎯 Next Up: v0.1.0 - Property Type Awareness
 
-**Status**: 🚧 Phase 1 Complete | Phase 2-5 Pending
+**Status**: 🚧 Phase 1-2 Complete | Phase 3-5 Pending
 
-**Phase 1 Completed**: 2025-12-27
+**Phase 1 Completed**: 2025-12-27 (v0.0.14)
+**Phase 2 Completed**: 2025-12-27 (v0.0.15)
 
 ### What's Coming
 
 Transform property filtering from manual text input to intelligent, type-aware UI:
 
 #### Core Features
-- ✅ **Property name autocomplete** - Dropdown with validation against existing properties
-- ✅ **Property type detection** - Automatic detection of boolean, text, reference, date, number types
-- ✅ **Type-specific input UI**:
+- ✅ **Property name autocomplete** - Dropdown with validation against existing properties (v0.0.15)
+- ✅ **Property type detection** - Automatic detection of boolean, text, reference, date, number types (v0.0.14)
+- ⏸️ **Type-specific input UI**:
   - Checkbox properties → Radio buttons (checked/unchecked)
   - Reference properties (single) → Dropdown with actual values
   - Reference properties (multi) → Checkbox group
   - Date properties → Date picker + operator dropdown (=, <, >, <=, >=)
   - Number properties → Number input + operator dropdown
   - Text properties → Text input (fallback)
-- ✅ **Tag-based property suggestions** - Show hint with associated properties when tag is selected
+- ⏸️ **Tag-based property suggestions** - Show hint with associated properties when tag is selected
 
 #### Implementation Progress
 **5 phases** with comprehensive testing at each stage:
 1. ✅ **API Layer** - Add methods to fetch property metadata, values, and tag associations (v0.0.14)
-2. ⏸️ **Property Autocomplete** - Enable autocomplete for property names
+2. ✅ **Property Autocomplete** - Enable autocomplete for property names (v0.0.15)
 3. ⏸️ **Type-Specific Inputs** - Render appropriate UI controls based on property type
 4. ⏸️ **Query Generation** - Generate correct Datalog queries for each property type
 5. ⏸️ **Tag Suggestions** - Show property hints when tags are selected

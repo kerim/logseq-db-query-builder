@@ -236,10 +236,24 @@ class FilterManager {
                     const propNameInput = document.createElement('input');
                     propNameInput.type = 'text';
                     propNameInput.className = 'filter-input';
-                    propNameInput.placeholder = 'Property name...';
+                    propNameInput.placeholder = 'Select property...';
                     propNameInput.value = filter.propertyName || '';
-                    propNameInput.addEventListener('input', (e) => {
+                    propNameInput.setAttribute('data-autocomplete', 'property');  // Enable autocomplete
+
+                    propNameInput.addEventListener('input', async (e) => {
                         filter.propertyName = e.target.value;
+
+                        // Fetch schema when property selected (for future phase 3)
+                        if (filter.propertyName && window.app.state.graph) {
+                            const schema = await window.app.api.getPropertySchema(
+                                window.app.state.graph,
+                                filter.propertyName
+                            );
+                            filter.propertySchema = schema;
+                            // TODO: Re-render value input based on schema (Phase 3)
+                            // this.renderPropertyValueInput(filter, container);
+                        }
+
                         this.notifyChange();
                     });
                     container.appendChild(propNameInput);
