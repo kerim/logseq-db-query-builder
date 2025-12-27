@@ -5,6 +5,18 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.18] - 2025-12-27
+
+### Fixed
+- **CRITICAL BUG**: Property filters were showing two value inputs instead of one
+- Fixed 'value' input rendering to skip for property filters
+- Property filters now correctly show only the type-specific input (dropdown, date picker, etc.)
+- Removed duplicate "Enter value..." and "Property value..." inputs
+
+### Technical
+- Modified 'value' case in renderInputs() to check filter.type === 'property'
+- Property filters now exclusively use renderPropertyValueInput() for value input
+
 ## [0.0.17] - 2025-12-27
 
 ### Added

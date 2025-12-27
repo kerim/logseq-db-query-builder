@@ -184,16 +184,23 @@ class FilterManager {
                     break;
 
                 case 'value':
-                    const valueInput = document.createElement('input');
-                    valueInput.type = 'text';
-                    valueInput.className = 'filter-input';
-                    valueInput.placeholder = 'Enter value...';
-                    valueInput.value = filter.value || '';
-                    valueInput.addEventListener('input', (e) => {
-                        filter.value = e.target.value;
-                        this.notifyChange();
-                    });
-                    container.appendChild(valueInput);
+                    // For property filters, skip this - renderPropertyValueInput() will handle it
+                    if (filter.type === 'property') {
+                        // Render type-specific input based on property schema
+                        this.renderPropertyValueInput(filter, container);
+                    } else {
+                        // Standard text input for other filter types
+                        const valueInput = document.createElement('input');
+                        valueInput.type = 'text';
+                        valueInput.className = 'filter-input';
+                        valueInput.placeholder = 'Enter value...';
+                        valueInput.value = filter.value || '';
+                        valueInput.addEventListener('input', (e) => {
+                            filter.value = e.target.value;
+                            this.notifyChange();
+                        });
+                        container.appendChild(valueInput);
+                    }
                     break;
 
                 case 'value-autocomplete':
