@@ -106,7 +106,8 @@ class Autocomplete {
                 const props = await this.api.getProperties(graphName, searchTerm);
                 this.suggestions = props.map(p => ({
                     label: p.title,
-                    value: p.title
+                    value: p.title,
+                    ident: p.ident  // Store full identifier for schema lookup
                 }));
                 break;
 
@@ -173,6 +174,10 @@ class Autocomplete {
             const suggestion = this.suggestions[index];
             if (this.activeInput) {
                 this.activeInput.value = suggestion.value;
+                // Store ident as data attribute for property autocomplete
+                if (suggestion.ident) {
+                    this.activeInput.setAttribute('data-property-ident', suggestion.ident);
+                }
                 // Trigger input event to update filter state
                 this.activeInput.dispatchEvent(new Event('input', { bubbles: true }));
             }

@@ -5,6 +5,26 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.19] - 2025-12-27
+
+### Fixed
+- **CRITICAL FIX**: Property value dropdowns were not appearing
+- Fixed property identifier handling - now uses full ident with UUID suffix
+- Autocomplete now passes full property identifier (e.g., `:user.property/ProjectStatus-IUJoj7Hs`)
+- Property schema fetch now uses full identifier instead of cleaned name
+- Property value dropdowns now populate correctly with actual values
+
+### Changed
+- Autocomplete suggestions for properties now include `ident` field
+- Property-name input handler reads `data-property-ident` attribute from autocomplete
+- Schema fetch uses direct query with full identifier instead of `getPropertySchema()`
+
+### Technical
+- Autocomplete stores `ident` in suggestion object
+- `selectSuggestion()` sets `data-property-ident` attribute on input element
+- Property filter stores both `propertyName` (display) and `propertyIdent` (full identifier)
+- Direct schema query: `[:find (pull ?p [*]) :where [?p :db/ident FULL_IDENT]]`
+
 ## [0.0.18] - 2025-12-27
 
 ### Fixed

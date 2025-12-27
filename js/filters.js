@@ -250,16 +250,30 @@ class FilterManager {
                     propNameInput.addEventListener('input', async (e) => {
                         filter.propertyName = e.target.value;
 
-                        // Fetch schema when property selected
-                        if (filter.propertyName && window.app.state.graph) {
-                            const schema = await window.app.api.getPropertySchema(
-                                window.app.state.graph,
-                                filter.propertyName
-                            );
-                            filter.propertySchema = schema;
+                        // Get full property identifier from autocomplete
+                        const propertyIdent = e.target.getAttribute('data-property-ident');
+                        if (propertyIdent) {
+                            filter.propertyIdent = propertyIdent;
+                        }
 
-                            // Re-render value input based on schema type
-                            this.renderPropertyValueInput(filter, container);
+                        // Fetch schema when property selected
+                        if (propertyIdent && window.app.state.graph) {
+                            // Fetch schema using the full identifier
+                            const query = `[:find (pull ?p [*]) :where [?p :db/ident ${propertyIdent}]]`;
+                            const result = await window.app.api.executeQuery(window.app.state.graph, query);
+
+                            if (result.data.length > 0) {
+                                const schema = result.data[0][0];
+                                filter.propertySchema = {
+                                    name: schema[':block/title'],
+                                    ident: propertyIdent,
+                                    valueType: schema[':db/valueType'],
+                                    cardinality: schema[':db/cardinality']
+                                };
+
+                                // Re-render value input based on schema type
+                                this.renderPropertyValueInput(filter, container);
+                            }
                         }
 
                         this.notifyChange();
