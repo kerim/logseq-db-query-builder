@@ -5,6 +5,26 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.20] - 2025-12-27
+
+### Fixed
+- **CRITICAL FIX**: Property type detection now works for user properties without schema definitions
+- Changed from schema lookup to type inference from actual property values
+- Property value dropdowns now appear for reference properties
+- Detects reference, boolean, number, string, and array types from sample values
+
+### Changed
+- Property type detection now queries for sample values: `[:find (pull ?b [PROPERTY]) :where [?b PROPERTY] :limit 1]`
+- Infers `:db.type/ref` from objects with `:db/id` key
+- Infers `:db.cardinality/many` from array values
+- Infers boolean and number types from JavaScript typeof
+- Defaults to string type if unable to determine
+
+### Technical
+- Removed schema entity lookup (doesn't exist for user properties)
+- Type inference handles single values, arrays, and entity references
+- Works for both user.property and logseq.property namespaces
+
 ## [0.0.19] - 2025-12-27
 
 ### Fixed

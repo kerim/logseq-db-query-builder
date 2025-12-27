@@ -256,22 +256,40 @@ class FilterManager {
                             filter.propertyIdent = propertyIdent;
                         }
 
-                        // Fetch schema when property selected
+                        // Infer property type from actual usage
                         if (propertyIdent && window.app.state.graph) {
-                            // Fetch schema using the full identifier
-                            const query = `[:find (pull ?p [*]) :where [?p :db/ident ${propertyIdent}]]`;
-                            const result = await window.app.api.executeQuery(window.app.state.graph, query);
+                            // Get a sample value to infer the type
+                            const sampleQuery = `[:find (pull ?b [${propertyIdent}]) :where [?b ${propertyIdent}] :limit 1]`;
+                            const sampleResult = await window.app.api.executeQuery(window.app.state.graph, sampleQuery);
 
-                            if (result.data.length > 0) {
-                                const schema = result.data[0][0];
+                            if (sampleResult.data.length > 0) {
+                                const sampleValue = sampleResult.data[0][0][propertyIdent];
+
+                                // Infer type from sample value
+                                let valueType = ':db.type/string';  // default
+                                let cardinality = ':db.cardinality/one';
+
+                                if (Array.isArray(sampleValue)) {
+                                    cardinality = ':db.cardinality/many';
+                                    if (sampleValue.length > 0 && typeof sampleValue[0] === 'object' && sampleValue[0][':db/id']) {
+                                        valueType = ':db.type/ref';
+                                    }
+                                } else if (typeof sampleValue === 'object' && sampleValue[':db/id']) {
+                                    valueType = ':db.type/ref';
+                                } else if (typeof sampleValue === 'boolean') {
+                                    valueType = ':db.type/boolean';
+                                } else if (typeof sampleValue === 'number') {
+                                    valueType = ':db.type/number';
+                                }
+
                                 filter.propertySchema = {
-                                    name: schema[':block/title'],
+                                    name: filter.propertyName,
                                     ident: propertyIdent,
-                                    valueType: schema[':db/valueType'],
-                                    cardinality: schema[':db/cardinality']
+                                    valueType: valueType,
+                                    cardinality: cardinality
                                 };
 
-                                // Re-render value input based on schema type
+                                // Re-render value input based on inferred type
                                 this.renderPropertyValueInput(filter, container);
                             }
                         }
