@@ -371,7 +371,9 @@ section {
 /* Extensions checkbox column - appears to the right of checkboxes */
 .extensions-checkbox-column {
     display: flex;
+    flex-direction: column;
     align-items: flex-start;
+    gap: var(--spacing-sm);
     padding-left: var(--spacing-xl);
     border-left: 1px solid var(--border-color);
 }

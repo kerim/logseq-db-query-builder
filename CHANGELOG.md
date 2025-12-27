@@ -5,6 +5,14 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.12] - 2025-12-27
+
+### Changed
+- **UI Layout**: Stacked both checkboxes vertically in the same column
+- Extensions column now uses `flex-direction: column` for vertical stacking
+- Removed unnecessary `<br>` element, using flexbox gap for spacing instead
+- Both "Include extensions" and "Include all status properties" now appear stacked in right column
+
 ## [0.0.11] - 2025-12-27
 
 ### Added

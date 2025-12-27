@@ -349,7 +349,6 @@ class FilterManager {
 
                     allStatusLabel.appendChild(allStatusCheckbox);
                     allStatusLabel.appendChild(document.createTextNode(' Include all status properties'));
-                    extensionsWrapper.appendChild(document.createElement('br'));
                     extensionsWrapper.appendChild(allStatusLabel);
 
                     container.appendChild(extensionsWrapper);
