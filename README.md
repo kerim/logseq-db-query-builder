@@ -243,11 +243,9 @@ See `QUICKSTART_PROPERTY_TYPES.md` for implementation guide.
 - [ ] Operator support for numeric/date properties (=, <, >, <=, >=)
 - [ ] Tag-based property suggestions
 
-### v0.2.0 - Save/Load Query Presets (Next)
-- [ ] Save favorite queries to localStorage
-- [ ] Load saved queries
-- [ ] Manage saved presets (rename, delete)
-- [ ] Export/import presets
+### v0.2.0 - Boolean Logic (Next)
+- [ ] AND/OR/NOT logic per filter
+- [ ] Nested filter groups
 
 ### Future
 - [ ] Reverse query parsing (paste query → populate UI)
