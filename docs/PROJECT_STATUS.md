@@ -1,16 +1,24 @@
 # Logseq DB Query Builder - Project Status
 
-## 🎉 v0.0.28 Released! (2025-12-28)
+## 🎉 v0.1.0 Released! (2025-12-28)
 
-**Current Version**: v0.0.28
+**Current Version**: v0.1.0
 
-### What's New in v0.0.28
+### What's New in v0.1.0
+- 🚀 **NEW FEATURE**: Tag-based property suggestions
+- ✅ Property hints appear when tags are selected
+- ✅ Shows associated properties using Logseq's class/property relationships
+- ✅ Updates immediately on autocomplete selection
+- ✅ Clean property name display (strips UUID suffixes)
+- ✅ Completes Phase 5 of Property Type Awareness milestone
+
+### Recent Releases
+
+#### v0.0.28 (2025-12-28)
 - 🐛 **FIX**: Property dropdowns no longer duplicate when changing properties
 - ✅ Fixed async race conditions in all render methods
 - ✅ Dropdowns now cleanly replace when property selection changes
 - ✅ All input types (text, number, date, boolean, ref) handle rapid changes correctly
-
-### Recent Releases
 
 #### v0.0.27 (2025-12-28)
 - 🐛 **FIX**: Property values now populate dropdown correctly
@@ -114,18 +122,19 @@
 
 ---
 
-## 🎯 Next Up: v0.1.0 - Property Type Awareness
+## ✅ v0.1.0 - Property Type Awareness **COMPLETE**
 
-**Status**: ✅ Phase 1-4 **COMPLETE** (v0.0.28) | Phase 5 Ready
+**Status**: ✅ **ALL PHASES COMPLETE** (v0.1.0)
 
 **Phase 1 Completed**: 2025-12-27 (v0.0.14) - API methods for property metadata
 **Phase 2 Completed**: 2025-12-27 (v0.0.16) - Property name autocomplete
 **Phase 3 Completed**: 2025-12-27 (v0.0.17) - Type-specific input UI
 **Phase 4 Completed**: 2025-12-28 (v0.0.23-0.0.28) - Query generation & bug fixes
+**Phase 5 Completed**: 2025-12-28 (v0.1.0) - Tag-based property suggestions
 
-### What's Coming
+### Features Delivered
 
-Transform property filtering from manual text input to intelligent, type-aware UI:
+Property filtering transformed from manual text input to intelligent, type-aware UI:
 
 #### Core Features
 - ✅ **Property name autocomplete** - Dropdown with validation against existing properties (v0.0.16)
@@ -137,10 +146,10 @@ Transform property filtering from manual text input to intelligent, type-aware U
   - Date properties → Date picker + operator dropdown (=, <, >, <=, >=)
   - Number properties → Number input + operator dropdown
   - Text properties → Text input (fallback)
-- ⏸️ **Tag-based property suggestions** - Show hint with associated properties when tag is selected
+- ✅ **Tag-based property suggestions** - Show hint with associated properties when tag is selected (v0.1.0)
 
 #### Implementation Progress
-**5 phases** with comprehensive testing at each stage:
+**5 phases** completed with comprehensive testing:
 1. ✅ **API Layer** - Add methods to fetch property metadata, values, and tag associations (v0.0.14)
 2. ✅ **Property Autocomplete** - Enable autocomplete for property names (v0.0.16)
 3. ✅ **Type-Specific Inputs** - Render appropriate UI controls based on property type (v0.0.17)
@@ -150,7 +159,7 @@ Transform property filtering from manual text input to intelligent, type-aware U
    - Fixed type inference for reference properties (v0.0.26)
    - Fixed property values dropdown population (v0.0.27)
    - Fixed duplicate dropdowns on property change (v0.0.28)
-5. 🎯 **Tag Suggestions** - Show property hints when tags are selected (NEXT)
+5. ✅ **Tag Suggestions** - Show property hints when tags are selected (v0.1.0)
 
 #### Documentation
 - **Quickstart Guide**: `QUICKSTART_PROPERTY_TYPES.md` - Concise implementation guide
@@ -241,38 +250,7 @@ All planning, investigation, and user decisions are complete. Implementation can
 
 ---
 
-## 🎯 Next Up: v0.1.0
-
-### Priority Features
-1. **Text Search Operators** ⭐⭐⭐
-   - Add: equals, starts-with, ends-with, regex
-   - Essential for precise searching
-
-2. **Property Type Awareness** ⭐⭐⭐
-   - Detect string, number, date, checkbox types
-   - Type-specific operators
-   - Smart input fields
-
-3. **Property Name Autocomplete** ⭐⭐⭐
-   - Show all available properties
-   - Display property type
-   - Filter suggestions
-
-4. **Enhanced Tag Autocomplete** ⭐⭐
-   - Keyboard navigation
-   - Better visual design
-   - Show tag metadata
-
-### Estimated Timeline
-- **Start**: Ready to begin
-- **Duration**: 2-3 days (10-13 hours)
-- **Target Release**: Late December 2024
-
----
-
-## 🚀 Future Roadmap
-
-### v0.2.0 - Boolean Logic (HIGH Priority)
+## 🎯 Next Up: v0.2.0 - Boolean Logic (HIGH Priority)
 - Nested filter groups
 - AND/OR/NOT operators per group
 - Visual grouping interface
