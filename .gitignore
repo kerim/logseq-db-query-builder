@@ -32,10 +32,6 @@ test-*.txt
 # Tests directory (reserved for future unit/integration tests)
 tests/
 
-# Documentation
-docs/
-
-
 # Editor directories and files
 .idea
 .vscode

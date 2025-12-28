@@ -1,16 +1,43 @@
 # Logseq DB Query Builder - Project Status
 
-## 🎉 v0.0.22 Released! (2025-12-27)
+## 🎉 v0.0.28 Released! (2025-12-28)
 
-**Current Version**: v0.0.22
+**Current Version**: v0.0.28
 
-### What's New in v0.0.22
-- 🐛 **CRITICAL FIX**: Property value dropdowns now appear correctly!
-- ✅ Fixed async timing issue - `notifyChange()` now waits for schema to be set
-- ✅ Reference properties now show dropdown with actual values ("Active", "Inactive", etc.)
-- ✅ Schema is fully populated before UI updates
+### What's New in v0.0.28
+- 🐛 **FIX**: Property dropdowns no longer duplicate when changing properties
+- ✅ Fixed async race conditions in all render methods
+- ✅ Dropdowns now cleanly replace when property selection changes
+- ✅ All input types (text, number, date, boolean, ref) handle rapid changes correctly
 
 ### Recent Releases
+
+#### v0.0.27 (2025-12-28)
+- 🐛 **FIX**: Property values now populate dropdown correctly
+- ✅ Fixed result key access (keys don't have `:` prefix)
+- ✅ Removed nested array assumption in `getPropertyValues`
+
+#### v0.0.26 (2025-12-28)
+- 🐛 **FIX**: Property type now correctly detected as reference
+- ✅ Type inference checks both `'db/id'` and `':db/id'` formats
+- ✅ Dropdowns now render for reference properties
+
+#### v0.0.25 (2025-12-28)
+- 🐛 **FIX**: Query result data structure access corrected
+- ✅ Changed from `data[0][0][key]` to `data[0][key]` for pull queries
+- ✅ Sample value extraction now works correctly
+
+#### v0.0.24 (2025-12-28)
+- 🐛 **FIX**: Property identifiers now have required `:` prefix in queries
+- ✅ Queries no longer fail with "Cannot compare :block/refs" error
+- ✅ All query generation adds `:` prefix when needed
+
+#### v0.0.23 (2025-12-28)
+- 🔧 **DIAGNOSTIC**: Added comprehensive logging to debug property dropdown
+- ✅ Console logging at every step of property-name input handler
+- ✅ Created detailed debugging plan (PROPERTY_DROPDOWN_DEBUG_PLAN.md)
+
+#### v0.0.22 (2025-12-27)
 
 #### v0.0.21 (2025-12-27)
 - 🐛 **CRITICAL FIX**: Property autocomplete dropdown no longer re-appears after selection
@@ -89,11 +116,12 @@
 
 ## 🎯 Next Up: v0.1.0 - Property Type Awareness
 
-**Status**: 🚧 Phase 1-4 Complete | Phase 5 Pending
+**Status**: ✅ Phase 1-4 **COMPLETE** (v0.0.28) | Phase 5 Ready
 
-**Phase 1 Completed**: 2025-12-27 (v0.0.14)
-**Phase 2 Completed**: 2025-12-27 (v0.0.15, fixed in v0.0.16)
-**Phase 3 & 4 Completed**: 2025-12-27 (v0.0.17)
+**Phase 1 Completed**: 2025-12-27 (v0.0.14) - API methods for property metadata
+**Phase 2 Completed**: 2025-12-27 (v0.0.16) - Property name autocomplete
+**Phase 3 Completed**: 2025-12-27 (v0.0.17) - Type-specific input UI
+**Phase 4 Completed**: 2025-12-28 (v0.0.23-0.0.28) - Query generation & bug fixes
 
 ### What's Coming
 
@@ -116,8 +144,13 @@ Transform property filtering from manual text input to intelligent, type-aware U
 1. ✅ **API Layer** - Add methods to fetch property metadata, values, and tag associations (v0.0.14)
 2. ✅ **Property Autocomplete** - Enable autocomplete for property names (v0.0.16)
 3. ✅ **Type-Specific Inputs** - Render appropriate UI controls based on property type (v0.0.17)
-4. ✅ **Query Generation** - Generate correct Datalog queries for each property type (v0.0.17)
-5. ⏸️ **Tag Suggestions** - Show property hints when tags are selected
+4. ✅ **Query Generation & Bug Fixes** - Generate correct Datalog queries for each property type (v0.0.17-0.0.28)
+   - Fixed property identifier prefix handling (v0.0.24)
+   - Fixed query result data structure parsing (v0.0.25)
+   - Fixed type inference for reference properties (v0.0.26)
+   - Fixed property values dropdown population (v0.0.27)
+   - Fixed duplicate dropdowns on property change (v0.0.28)
+5. 🎯 **Tag Suggestions** - Show property hints when tags are selected (NEXT)
 
 #### Documentation
 - **Quickstart Guide**: `QUICKSTART_PROPERTY_TYPES.md` - Concise implementation guide
