@@ -138,32 +138,29 @@ class LogseqAPI {
      */
     async getTags(graphName, searchTerm = '') {
         try {
-            // Query to find all tags (blocks that are tagged)
-            const query = searchTerm 
-                ? `[:find (pull ?t [:block/title :block/uuid]) 
-                    :where 
-                    [?b :block/tags ?t] 
-                    [?t :block/title ?title]
-                    [(clojure.string/includes? ?title "${searchTerm}")]]`
-                : `[:find (pull ?t [:block/title :block/uuid]) 
-                    :where 
-                    [?b :block/tags ?t] 
-                    [?t :block/title]]`;
+            // Query to find all tags (no filtering in query - do it in JavaScript)
+            const query = `[:find (pull ?t [:block/title :block/uuid])
+                            :where
+                            [?b :block/tags ?t]
+                            [?t :block/title]]`;
 
             const result = await this.executeQuery(graphName, query);
-            
-            // Deduplicate tags by title
+
+            // Deduplicate and filter tags
             const tagMap = new Map();
             result.data.forEach(item => {
                 const tag = item[0]; // Pull returns nested array
                 if (tag && tag['block/title']) {
-                    tagMap.set(tag['block/title'], {
-                        title: tag['block/title'],
-                        uuid: tag['block/uuid']
-                    });
+                    // Filter in JavaScript (case-insensitive)
+                    if (!searchTerm || tag['block/title'].toLowerCase().includes(searchTerm.toLowerCase())) {
+                        tagMap.set(tag['block/title'], {
+                            title: tag['block/title'],
+                            uuid: tag['block/uuid']
+                        });
+                    }
                 }
             });
-            
+
             return Array.from(tagMap.values());
         } catch (error) {
             console.error('Failed to get tags:', error);
