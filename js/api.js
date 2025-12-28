@@ -271,9 +271,11 @@ class LogseqAPI {
                             [_ ${queryIdent} ?val]]`;
 
             const result = await this.executeQuery(graphName, query);
+            // Result structure: [{block/title: "...", db/id: 123}, ...]
+            // Note: Keys don't have ':' prefix
             return result.data.map(item => ({
-                title: item[0][':block/title'],
-                id: item[0][':db/id']
+                title: item['block/title'] || item[':block/title'],
+                id: item['db/id'] || item[':db/id']
             }));
         } catch (error) {
             console.error('Failed to get property values:', error);
