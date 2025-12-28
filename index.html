@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logseq DB Query Builder v0.2.0</title>
+    <title>Logseq DB Query Builder v0.2.1</title>
     <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
@@ -12,7 +12,7 @@
         <header class="header">
             <div class="header-content">
                 <h1>Logseq DB Query Builder</h1>
-                <span class="version">v0.2.0</span>
+                <span class="version">v0.2.1</span>
             </div>
             <div class="header-controls">
                 <button id="theme-toggle" class="btn-icon" title="Toggle theme">
@@ -32,6 +32,16 @@
                     <span class="status-dot"></span>
                     <span class="status-text">Not connected</span>
                 </span>
+            </div>
+
+            <!-- Setup Help (shown when disconnected) -->
+            <div id="setup-help" class="setup-help">
+                <p><strong>Not connected?</strong> This tool requires a local server:</p>
+                <ol>
+                    <li><strong>Install & run <a href="https://github.com/kerim/logseq-http-server" target="_blank">logseq-http-server</a></strong> on your machine</li>
+                    <li><strong>Disable your ad blocker</strong> for this site (ad blockers block localhost requests)</li>
+                </ol>
+                <p><a href="https://github.com/kerim/logseq-db-query-builder#troubleshooting" target="_blank">Full setup instructions →</a></p>
             </div>
         </section>
 

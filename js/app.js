@@ -133,13 +133,18 @@ class App {
     updateConnectionStatus(connected) {
         this.state.connected = connected;
         const statusEl = document.getElementById('connection-status');
-        
+        const setupHelp = document.getElementById('setup-help');
+
         if (connected) {
             statusEl.classList.add('connected');
             statusEl.querySelector('.status-text').textContent = 'Connected';
+            // Hide setup help when connected
+            if (setupHelp) setupHelp.classList.add('hidden');
         } else {
             statusEl.classList.remove('connected');
             statusEl.querySelector('.status-text').textContent = 'Disconnected';
+            // Show setup help when disconnected
+            if (setupHelp) setupHelp.classList.remove('hidden');
         }
     }
 

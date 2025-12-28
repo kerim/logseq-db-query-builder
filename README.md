@@ -138,17 +138,22 @@ logseq-db-query-builder/
 
 ## Troubleshooting
 
-### "Disconnected" status
-- **Problem:** HTTP server is not running
-- **Solution:** Start the server with `python3 logseq_server.py`
+### "Disconnected" status (most common)
+
+**1. HTTP server not running**
+- Start the server: `python3 logseq_server.py`
+- Verify it's running: visit `http://localhost:8765/health` in your browser
+
+**2. Ad blocker blocking localhost requests**
+- **Brave Browser:** Click the Shields icon → disable for this site
+- **uBlock Origin:** Click icon → click the power button to disable for this site
+- **Other ad blockers:** Whitelist `localhost:8765` or disable temporarily
+
+This is especially common when using the [online version](https://kerim.github.io/logseq-db-query-builder/) since ad blockers may block requests from external sites to localhost.
 
 ### "No graphs listed"
 - **Problem:** Server can't find your DB graphs
 - **Solution:** Run `logseq list` in terminal to verify graphs are accessible
-
-### CORS errors (when using GitHub Pages)
-- **Problem:** Browser blocking requests to localhost
-- **Solution:** Ensure logseq-http-server has CORS enabled (it should by default)
 
 ### "Query execution failed"
 - **Problem:** Invalid query or graph access issue

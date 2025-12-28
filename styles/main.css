@@ -196,6 +196,44 @@ body {
     color: var(--status-connected);
 }
 
+/* Setup Help Box */
+.setup-help {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--status-disconnected);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+}
+
+.setup-help.hidden {
+    display: none;
+}
+
+.setup-help p {
+    margin: 0 0 var(--spacing-sm) 0;
+}
+
+.setup-help ol {
+    margin: var(--spacing-sm) 0;
+    padding-left: var(--spacing-lg);
+}
+
+.setup-help li {
+    margin-bottom: var(--spacing-xs);
+}
+
+.setup-help a {
+    color: var(--accent-primary);
+    text-decoration: none;
+}
+
+.setup-help a:hover {
+    text-decoration: underline;
+}
+
 /* ===========================
    Sections
    =========================== */
