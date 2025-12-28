@@ -50,18 +50,34 @@ class FilterManager {
     constructor(containerId, onChange) {
         this.container = document.getElementById(containerId);
         this.onChange = onChange; // Callback when filters change
-        this.filters = [];
-        this.filterIdCounter = 0;
+        this.idCounter = 0;
+
+        // Initialize with root group (always exists)
+        this.rootGroup = this.createGroup('root', 'all');
+    }
+
+    // ========================================
+    // Tree Structure Methods
+    // ========================================
+
+    /**
+     * Create a new group object
+     */
+    createGroup(id = null, matchMode = 'all') {
+        return {
+            id: id || `group-${this.idCounter++}`,
+            type: 'group',
+            matchMode: matchMode,
+            children: []
+        };
     }
 
     /**
-     * Add a new filter
+     * Create a new filter object
      */
-    addFilter(filterType = '') {
-        const filterId = `filter-${this.filterIdCounter++}`;
-        
-        const filter = {
-            id: filterId,
+    createFilter(filterType = '') {
+        return {
+            id: `filter-${this.idCounter++}`,
             type: filterType,
             operator: null,
             value: '',
@@ -70,91 +86,168 @@ class FilterManager {
             endDate: '',
             dateProperty: 'created-at'
         };
+    }
 
-        this.filters.push(filter);
-        this.renderFilter(filter);
+    /**
+     * Find a group by ID (recursive)
+     */
+    findGroup(node, targetId) {
+        if (node.id === targetId && node.type === 'group') {
+            return node;
+        }
+        if (node.type === 'group' && node.children) {
+            for (const child of node.children) {
+                const found = this.findGroup(child, targetId);
+                if (found) return found;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Find any item (filter or group) by ID (recursive)
+     */
+    findItem(node, targetId) {
+        if (node.id === targetId) {
+            return node;
+        }
+        if (node.type === 'group' && node.children) {
+            for (const child of node.children) {
+                const found = this.findItem(child, targetId);
+                if (found) return found;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Remove an item from a group by ID (recursive)
+     * Returns true if item was found and removed
+     */
+    removeFromGroup(group, targetId) {
+        const index = group.children.findIndex(c => c.id === targetId);
+        if (index !== -1) {
+            group.children.splice(index, 1);
+            return true;
+        }
+        for (const child of group.children) {
+            if (child.type === 'group') {
+                if (this.removeFromGroup(child, targetId)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Get all filters flattened (for validation/entity detection)
+     */
+    getAllFilters(node = this.rootGroup) {
+        const filters = [];
+        if (node.type === 'group' && node.children) {
+            for (const child of node.children) {
+                if (child.type === 'group') {
+                    filters.push(...this.getAllFilters(child));
+                } else {
+                    filters.push(child);
+                }
+            }
+        } else if (node.type !== 'group') {
+            filters.push(node);
+        }
+        return filters;
+    }
+
+    // ========================================
+    // Public API Methods
+    // ========================================
+
+    /**
+     * Add a new filter to a group
+     */
+    addFilter(groupId = 'root', filterType = '') {
+        const group = this.findGroup(this.rootGroup, groupId);
+        if (!group) {
+            console.error('Group not found:', groupId);
+            return null;
+        }
+
+        const filter = this.createFilter(filterType);
+        group.children.push(filter);
+        this.render();
         this.notifyChange();
-        
+
         return filter;
     }
 
     /**
-     * Remove a filter
+     * Add a new nested group
      */
-    removeFilter(filterId) {
-        this.filters = this.filters.filter(f => f.id !== filterId);
-        const filterElement = document.getElementById(filterId);
-        if (filterElement) {
-            filterElement.remove();
+    addGroup(parentGroupId = 'root', matchMode = 'any') {
+        const parentGroup = this.findGroup(this.rootGroup, parentGroupId);
+        if (!parentGroup) {
+            console.error('Parent group not found:', parentGroupId);
+            return null;
         }
+
+        const newGroup = this.createGroup(null, matchMode);
+        parentGroup.children.push(newGroup);
+        this.render();
+        this.notifyChange();
+
+        return newGroup;
+    }
+
+    /**
+     * Remove a filter or group by ID
+     */
+    removeItem(itemId) {
+        // Don't allow removing root group
+        if (itemId === 'root') {
+            console.warn('Cannot remove root group');
+            return;
+        }
+
+        this.removeFromGroup(this.rootGroup, itemId);
+        this.render();
         this.notifyChange();
     }
 
     /**
-     * Clear all filters
+     * Change a group's match mode
+     */
+    setMatchMode(groupId, matchMode) {
+        const group = this.findGroup(this.rootGroup, groupId);
+        if (group) {
+            group.matchMode = matchMode;
+            this.render();
+            this.notifyChange();
+        }
+    }
+
+    /**
+     * Clear all filters (reset to empty root group)
      */
     clearAll() {
-        this.filters = [];
-        this.container.innerHTML = '';
+        this.rootGroup = this.createGroup('root', 'all');
+        this.render();
         this.notifyChange();
     }
 
     /**
-     * Get all filters
+     * Get the root group (for query generator)
      */
-    getFilters() {
-        return this.filters;
+    getRootGroup() {
+        return this.rootGroup;
     }
 
     /**
-     * Render a filter row
+     * Get all filters (flattened, for backward compatibility)
+     * @deprecated Use getRootGroup() for tree structure
      */
-    renderFilter(filter) {
-        const filterRow = document.createElement('div');
-        filterRow.className = 'filter-row';
-        filterRow.id = filter.id;
-
-        // Filter type dropdown
-        const typeSelect = document.createElement('select');
-        typeSelect.className = 'filter-type-select';
-        typeSelect.innerHTML = `
-            <option value="">Add filter/operator</option>
-            ${Object.entries(FILTER_TYPES).map(([value, config]) => 
-                `<option value="${value}" ${filter.type === value ? 'selected' : ''}>${config.label}</option>`
-            ).join('')}
-        `;
-
-        typeSelect.addEventListener('change', (e) => {
-            filter.type = e.target.value;
-            // Re-render the filter inputs
-            const inputsContainer = filterRow.querySelector('.filter-inputs');
-            inputsContainer.innerHTML = '';
-            this.renderFilterInputs(filter, inputsContainer);
-            this.notifyChange();
-        });
-
-        // Inputs container
-        const inputsContainer = document.createElement('div');
-        inputsContainer.className = 'filter-inputs';
-        
-        if (filter.type) {
-            this.renderFilterInputs(filter, inputsContainer);
-        }
-
-        // Remove button
-        const removeBtn = document.createElement('button');
-        removeBtn.className = 'btn-remove';
-        removeBtn.innerHTML = '×';
-        removeBtn.title = 'Remove filter';
-        removeBtn.addEventListener('click', () => {
-            this.removeFilter(filter.id);
-        });
-
-        filterRow.appendChild(typeSelect);
-        filterRow.appendChild(inputsContainer);
-        filterRow.appendChild(removeBtn);
-
-        this.container.appendChild(filterRow);
+    getFilters() {
+        return this.getAllFilters();
     }
 
     /**
@@ -866,8 +959,178 @@ class FilterManager {
      */
     notifyChange() {
         if (this.onChange) {
-            this.onChange(this.filters);
+            this.onChange(this.rootGroup);
         }
+    }
+
+    // ========================================
+    // Rendering Methods (Recursive)
+    // ========================================
+
+    /**
+     * Main render method - clears container and renders from root
+     */
+    render() {
+        this.container.innerHTML = '';
+        this.renderGroup(this.rootGroup, this.container, 0);
+    }
+
+    /**
+     * Render a group recursively
+     */
+    renderGroup(group, parentElement, depth) {
+        const groupDiv = document.createElement('div');
+        groupDiv.className = `filter-group depth-${depth}`;
+        groupDiv.id = group.id;
+        groupDiv.setAttribute('data-depth', depth);
+
+        // Group header (match mode selector + label)
+        this.renderGroupHeader(group, groupDiv, depth);
+
+        // Group children container
+        const childrenDiv = document.createElement('div');
+        childrenDiv.className = 'group-children';
+
+        // Render each child (filter or nested group)
+        for (const child of group.children) {
+            if (child.type === 'group') {
+                this.renderGroup(child, childrenDiv, depth + 1);
+            } else {
+                this.renderFilterInGroup(child, childrenDiv, group.id);
+            }
+        }
+
+        groupDiv.appendChild(childrenDiv);
+
+        // Group footer (add buttons)
+        this.renderGroupFooter(group, groupDiv);
+
+        parentElement.appendChild(groupDiv);
+    }
+
+    /**
+     * Render group header with match mode dropdown
+     */
+    renderGroupHeader(group, groupDiv, depth) {
+        const header = document.createElement('div');
+        header.className = 'group-header';
+
+        // Match mode dropdown
+        const modeSelect = document.createElement('select');
+        modeSelect.className = 'match-mode-select';
+        modeSelect.innerHTML = `
+            <option value="all" ${group.matchMode === 'all' ? 'selected' : ''}>ALL</option>
+            <option value="any" ${group.matchMode === 'any' ? 'selected' : ''}>ANY</option>
+            <option value="none" ${group.matchMode === 'none' ? 'selected' : ''}>NONE</option>
+        `;
+        modeSelect.addEventListener('change', (e) => {
+            this.setMatchMode(group.id, e.target.value);
+        });
+
+        // Label
+        const label = document.createElement('span');
+        label.className = 'match-mode-label';
+        label.textContent = 'of the following:';
+
+        header.appendChild(modeSelect);
+        header.appendChild(label);
+
+        // Remove button (not for root group)
+        if (group.id !== 'root') {
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'btn-remove-group';
+            removeBtn.innerHTML = '×';
+            removeBtn.title = 'Remove group';
+            removeBtn.addEventListener('click', () => {
+                this.removeItem(group.id);
+            });
+            header.appendChild(removeBtn);
+        }
+
+        groupDiv.appendChild(header);
+    }
+
+    /**
+     * Render group footer with add buttons
+     */
+    renderGroupFooter(group, groupDiv) {
+        const footer = document.createElement('div');
+        footer.className = 'group-footer';
+
+        // Add filter button
+        const addFilterBtn = document.createElement('button');
+        addFilterBtn.className = 'btn-add-filter';
+        addFilterBtn.innerHTML = '+ Filter';
+        addFilterBtn.addEventListener('click', () => {
+            this.addFilter(group.id);
+        });
+
+        // Add group button
+        const addGroupBtn = document.createElement('button');
+        addGroupBtn.className = 'btn-add-group';
+        addGroupBtn.innerHTML = '+ Group';
+        addGroupBtn.addEventListener('click', () => {
+            this.addGroup(group.id, 'any');
+        });
+
+        footer.appendChild(addFilterBtn);
+        footer.appendChild(addGroupBtn);
+
+        groupDiv.appendChild(footer);
+    }
+
+    /**
+     * Render a filter within a group (modified from original renderFilter)
+     */
+    renderFilterInGroup(filter, container, groupId) {
+        const filterRow = document.createElement('div');
+        filterRow.className = 'filter-row';
+        filterRow.id = filter.id;
+
+        // Filter type dropdown
+        const typeSelect = document.createElement('select');
+        typeSelect.className = 'filter-type-select';
+        typeSelect.innerHTML = `
+            <option value="">Select filter type...</option>
+            ${Object.entries(FILTER_TYPES).map(([value, config]) =>
+                `<option value="${value}" ${filter.type === value ? 'selected' : ''}>${config.label}</option>`
+            ).join('')}
+        `;
+
+        typeSelect.addEventListener('change', (e) => {
+            filter.type = e.target.value;
+            // Reset operator to default for new type
+            const newConfig = FILTER_TYPES[filter.type];
+            if (newConfig && newConfig.operators) {
+                filter.operator = newConfig.operators[0];
+            }
+            // Re-render this filter
+            this.render();
+            this.notifyChange();
+        });
+
+        // Inputs container
+        const inputsContainer = document.createElement('div');
+        inputsContainer.className = 'filter-inputs';
+
+        if (filter.type) {
+            this.renderFilterInputs(filter, inputsContainer);
+        }
+
+        // Remove button
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'btn-remove';
+        removeBtn.innerHTML = '×';
+        removeBtn.title = 'Remove filter';
+        removeBtn.addEventListener('click', () => {
+            this.removeItem(filter.id);
+        });
+
+        filterRow.appendChild(typeSelect);
+        filterRow.appendChild(inputsContainer);
+        filterRow.appendChild(removeBtn);
+
+        container.appendChild(filterRow);
     }
 }
 

@@ -12,8 +12,7 @@ class App {
         this.state = {
             graph: localStorage.getItem('lastGraph') || '',
             connected: false,
-            filters: [],
-            matchMode: 'all', // 'all' (AND) or 'any' (OR)
+            rootGroup: null, // Tree structure with nested groups and filters
             results: [],
             resultCount: 0,
             resultLimit: 50,
@@ -180,10 +179,10 @@ class App {
     }
 
     /**
-     * Handle filters change
+     * Handle filters change (receives rootGroup tree structure)
      */
-    onFiltersChange(filters) {
-        this.state.filters = filters;
+    onFiltersChange(rootGroup) {
+        this.state.rootGroup = rootGroup;
         this.generateQuery();
 
         // Clear results when filters change to avoid showing stale results
@@ -197,15 +196,16 @@ class App {
     }
 
     /**
-     * Generate Datalog query from current filters
+     * Generate Datalog query from current filters (tree structure)
      */
     generateQuery() {
-        const queryObj = QueryGenerator.generate(this.state.filters, this.state.matchMode);
-        
+        const rootGroup = this.state.rootGroup || this.filterManager.getRootGroup();
+        const queryObj = QueryGenerator.generate(rootGroup);
+
         if (queryObj) {
             this.state.generatedQuery = queryObj.raw;  // Use raw for API
             this.state.wrappedQuery = queryObj.wrapped; // Use wrapped for display/copy
-            
+
             const queryOutput = document.getElementById('query-output');
             queryOutput.textContent = queryObj.wrapped;  // Display wrapped version
         } else {

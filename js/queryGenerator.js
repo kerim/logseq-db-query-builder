@@ -1,23 +1,29 @@
 /**
  * Query Generator - Convert filter state to Datalog queries
+ * Supports recursive group structures with AND/OR/NOT logic
  */
 
 class QueryGenerator {
     /**
-     * Generate Datalog query from filters
-     * @param {Array} filters - Array of filter objects
-     * @param {string} matchMode - 'all' (AND) or 'any' (OR)
-     * @param {boolean} wrapForLogseq - Whether to wrap in {:query ...} for Logseq
-     * @returns {string|object} Query string or object with raw and wrapped versions
+     * Generate Datalog query from root group (tree structure)
+     * @param {Object} rootGroup - Root group containing nested groups and filters
+     * @returns {Object|null} Object with raw and wrapped query versions, or null if invalid
      */
-    static generate(filters, matchMode = 'all', wrapForLogseq = false) {
-        if (!filters || filters.length === 0) {
+    static generate(rootGroup) {
+        if (!rootGroup || rootGroup.type !== 'group') {
+            return null;
+        }
+
+        // Get all filters flattened for validation and entity detection
+        const allFilters = this.flattenFilters(rootGroup);
+
+        if (allFilters.length === 0) {
             return null;
         }
 
         // Filter out empty/invalid filters
-        const validFilters = filters.filter(f => this.isValidFilter(f));
-        
+        const validFilters = allFilters.filter(f => this.isValidFilter(f));
+
         if (validFilters.length === 0) {
             return null;
         }
@@ -29,19 +35,12 @@ class QueryGenerator {
         // Build :find clause
         const findClause = this.buildFindClause(entityVar);
 
-        // Build :where clauses
-        const whereClauses = validFilters.map(filter => 
-            this.buildWhereClause(filter, entityVar)
-        ).filter(clause => clause !== null);
+        // Build recursive where section from group tree
+        const whereSection = this.buildGroupClause(rootGroup, entityVar);
 
-        if (whereClauses.length === 0) {
+        if (!whereSection) {
             return null;
         }
-
-        // Combine clauses based on match mode
-        const whereSection = matchMode === 'all' 
-            ? this.combineWithAND(whereClauses)
-            : this.combineWithOR(whereClauses, entityVar);
 
         // Build raw datalog query (for API)
         const rawQuery = `[:find ${findClause}
@@ -59,6 +58,64 @@ class QueryGenerator {
             raw: rawQuery,
             wrapped: wrappedQuery
         };
+    }
+
+    /**
+     * Flatten all filters from a group tree (recursive)
+     */
+    static flattenFilters(node) {
+        const filters = [];
+        if (!node) return filters;
+
+        if (node.type === 'group' && node.children) {
+            for (const child of node.children) {
+                filters.push(...this.flattenFilters(child));
+            }
+        } else if (node.type !== 'group') {
+            filters.push(node);
+        }
+        return filters;
+    }
+
+    /**
+     * Build where clause for a group (recursive)
+     */
+    static buildGroupClause(group, entityVar) {
+        if (!group || !group.children || group.children.length === 0) {
+            return null;
+        }
+
+        // Build clauses for all children
+        const childClauses = [];
+        for (const child of group.children) {
+            let clause;
+            if (child.type === 'group') {
+                clause = this.buildGroupClause(child, entityVar);
+            } else {
+                if (this.isValidFilter(child)) {
+                    clause = this.buildWhereClause(child, entityVar);
+                }
+            }
+            if (clause) {
+                childClauses.push(clause);
+            }
+        }
+
+        if (childClauses.length === 0) {
+            return null;
+        }
+
+        // Combine based on group's match mode
+        switch (group.matchMode) {
+            case 'all':
+                return this.combineWithAND(childClauses);
+            case 'any':
+                return this.combineWithOR(childClauses, entityVar);
+            case 'none':
+                return this.combineWithNOT(childClauses, entityVar);
+            default:
+                return this.combineWithAND(childClauses);
+        }
     }
 
     /**
@@ -468,6 +525,19 @@ class QueryGenerator {
 
         return `(or-join [${entityVar}]
  ${branches})`;
+    }
+
+    /**
+     * Combine clauses with NOT logic using not-join
+     * NOT matches entities that do NOT match ANY of the contained clauses
+     */
+    static combineWithNOT(clauses, entityVar) {
+        // First, we need to bind the entity variable so not-join can reference it
+        // Then exclude entities matching the clauses
+        const combined = this.combineWithAND(clauses);
+        return `[${entityVar} :block/uuid]
+ (not-join [${entityVar}]
+  ${combined})`;
     }
 
     /**

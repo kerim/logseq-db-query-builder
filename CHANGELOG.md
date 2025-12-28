@@ -5,6 +5,47 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-12-28
+
+### Added
+- **Nested Filter Groups with Boolean Logic** (macOS Finder-style)
+- **Per-group match modes**: ALL (AND), ANY (OR), NONE (NOT)
+- **Unlimited nesting depth**: Groups can contain filters or other groups
+- **Visual tree structure** with indentation and connecting lines
+- **Add Group button**: Create nested groups within any group
+- **Match mode dropdown**: Change group logic (ALL/ANY/NONE) anytime
+
+### Changed
+- **Breaking**: Filter structure changed from flat array to tree (rootGroup with children)
+- FilterManager now uses recursive tree structure internally
+- QueryGenerator.generate() now accepts rootGroup instead of (filters, matchMode)
+- App state changed from `filters[]` + `matchMode` to single `rootGroup`
+- "Add Filter" button in header now adds to root group
+
+### Technical
+- New data model: `{id, type: 'group', matchMode, children: []}` for groups
+- Recursive rendering with `renderGroup()`, `renderGroupHeader()`, `renderGroupFooter()`
+- Recursive query building with `buildGroupClause()` method
+- NOT logic uses `not-join` pattern with entity binding
+- Depth-based CSS styling for visual hierarchy
+
+### Query Examples
+```clojure
+;; ALL of the following (AND)
+[?b :block/tags ?t] [?t :block/title "Task"]
+[?b :block/title ?title] [(re-find #"(?i)meeting" ?title)]
+
+;; ANY of the following (OR)
+(or-join [?b]
+  (and [?b :block/tags ?t] [?t :block/title "urgent"])
+  (and [?b :block/tags ?t2] [?t2 :block/title "important"]))
+
+;; NONE of the following (NOT)
+[?b :block/uuid]
+(not-join [?b]
+  [?b :block/tags ?t] [?t :block/title "archived"])
+```
+
 ## [0.0.22] - 2025-12-27
 
 ### Fixed
@@ -428,17 +469,12 @@ Planning completed 2025-12-27. See `QUICKSTART_PROPERTY_TYPES.md` for implementa
 **Implementation Plan:** 5 phases (API layer → autocomplete → type inputs → query generation → tag suggestions)
 **Full Details:** `/Users/niyaro/.claude/plans/cryptic-watching-mccarthy.md`
 
-### Planned for v0.2.0
-- ~~Text search operators (equals, starts-with, ends-with, regex)~~ Partially done: contains/equals in v0.0.2
+### Planned for v0.3.0
 - More text search operators (starts-with, ends-with, regex)
-- Boolean logic support (AND/OR/NOT)
-- Nested filter groups
 - Enhanced tag autocomplete with hierarchy
+- Result sorting options
 
 ### Future Versions
 - Reverse query parsing (paste query → populate UI)
-- Query presets and templates
-- Tag inheritance queries
-- Result sorting and export
 - Advanced aggregation queries
 - Query validation and testing tools

@@ -410,6 +410,165 @@ section {
     display: none;
 }
 
+/* ===========================
+   Filter Groups (Nested)
+   =========================== */
+
+/* Base group styling */
+.filter-group {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-sm);
+}
+
+/* Root group (depth-0) has no border/background */
+.filter-group.depth-0 {
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+/* Nested groups get progressively darker */
+.filter-group.depth-1 {
+    background: var(--bg-secondary);
+    margin-left: var(--spacing-md);
+}
+
+.filter-group.depth-2 {
+    background: var(--bg-tertiary);
+    margin-left: calc(var(--spacing-md) * 2);
+}
+
+.filter-group.depth-3 {
+    margin-left: calc(var(--spacing-md) * 3);
+}
+
+/* Group header - match mode selector */
+.group-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.depth-0 > .group-header {
+    padding-bottom: var(--spacing-md);
+}
+
+/* Match mode dropdown */
+.match-mode-select {
+    padding: var(--spacing-xs) var(--spacing-md);
+    background: var(--accent-primary);
+    border: none;
+    border-radius: var(--radius-sm);
+    color: white;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.match-mode-select:hover {
+    background: var(--accent-hover);
+}
+
+.match-mode-select:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--border-focus);
+}
+
+/* Match mode label */
+.match-mode-label {
+    color: var(--text-secondary);
+    font-size: var(--font-size-base);
+}
+
+/* Remove group button */
+.btn-remove-group {
+    margin-left: auto;
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-tertiary);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.btn-remove-group:hover {
+    background: var(--error-bg);
+    color: var(--error-text);
+    border-color: var(--error-text);
+}
+
+/* Group children container */
+.group-children {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    padding-left: var(--spacing-md);
+    border-left: 2px solid var(--border-color);
+    margin-left: var(--spacing-sm);
+}
+
+.depth-0 > .group-children {
+    padding-left: 0;
+    border-left: none;
+    margin-left: 0;
+}
+
+/* Group footer - add buttons */
+.group-footer {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-md);
+    padding-top: var(--spacing-sm);
+}
+
+.depth-0 > .group-footer {
+    margin-top: var(--spacing-lg);
+}
+
+/* Add filter/group buttons in footer */
+.btn-add-filter,
+.btn-add-group {
+    padding: var(--spacing-xs) var(--spacing-md);
+    background: var(--bg-primary);
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-sans);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-add-filter:hover,
+.btn-add-group:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-primary);
+    color: var(--text-primary);
+}
+
+.btn-add-group {
+    color: var(--text-tertiary);
+}
+
+/* Filter rows inside groups */
+.group-children > .filter-row {
+    margin-left: 0;
+}
+
 .filter-actions {
     display: flex;
     gap: var(--spacing-md);
