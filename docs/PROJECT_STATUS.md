@@ -1,18 +1,26 @@
 # Logseq DB Query Builder - Project Status
 
-## 🎉 v0.1.0 Released! (2025-12-28)
+## 🎉 v0.1.1 Released! (2025-12-28)
 
-**Current Version**: v0.1.0
+**Current Version**: v0.1.1
 
-### What's New in v0.1.0
+### What's New in v0.1.1
+- 🐛 **CRITICAL FIX**: Tag autocomplete now works correctly
+- ✅ Fixed case-sensitive matching issue in getTags() query
+- ✅ Changed from Datalog filtering to JavaScript filtering
+- ✅ Now uses case-insensitive matching: toLowerCase().includes()
+- ✅ Matches the working pattern from getProperties()
+- ✅ Tag property suggestions feature now functional
+
+### Recent Releases
+
+#### v0.1.0 (2025-12-28)
 - 🚀 **NEW FEATURE**: Tag-based property suggestions
 - ✅ Property hints appear when tags are selected
 - ✅ Shows associated properties using Logseq's class/property relationships
 - ✅ Updates immediately on autocomplete selection
 - ✅ Clean property name display (strips UUID suffixes)
 - ✅ Completes Phase 5 of Property Type Awareness milestone
-
-### Recent Releases
 
 #### v0.0.28 (2025-12-28)
 - 🐛 **FIX**: Property dropdowns no longer duplicate when changing properties
