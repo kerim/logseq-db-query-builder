@@ -1,254 +1,166 @@
 # Logseq DB Query Builder
 
-A visual query builder for Logseq DB (database) graphs. Build complex Datalog queries using a macOS Finder-style interface, see live results, and copy the generated query to use in Logseq.
+A visual query builder for [Logseq](https://logseq.com/) database graphs. Build complex Datalog queries using a macOS Finder-style interface with nested filter groups, see live results, and copy the generated query to use in Logseq.
+
+**[Try it online](https://kerim.github.io/logseq-db-query-builder/)** (requires local server - see Prerequisites)
 
 ## Features
 
-- **Visual Filter Builder**: Add and combine filters using dropdowns and inputs
-- **Live Results Preview**: See query results as you build
-- **Auto-complete**: Suggestions for tags and page names
-- **Copy-Paste Ready**: Generated queries ready to use in Logseq
-- **Dark/Light Theme**: Match your Logseq theme preference
-- **Graph Management**: Remember last selected graph
-- **Multiple Filter Types**: Page names, tags, properties, text search, dates, and more
+- **Visual Filter Builder** - Add and combine filters using dropdowns and inputs
+- **Nested Filter Groups** - Create complex boolean logic with ANY/ALL/NONE groups (like macOS Finder)
+- **Live Results Preview** - See query results as you build
+- **Property Type Awareness** - Automatic type detection with smart input controls
+- **Auto-complete** - Suggestions for tags, pages, and properties
+- **Copy-Paste Ready** - Generated queries ready to use in Logseq
+- **Dark/Light Theme** - Match your Logseq theme preference
 
 ## Prerequisites
 
-1. **Logseq HTTP Server** must be running
-   - Located at: `/Users/niyaro/Documents/Code/Logseq/logseq-http-server`
-   - Start with: `python3 logseq_server.py`
-   - Server runs on: `http://localhost:8765`
+This tool requires the **Logseq HTTP Server** to be running locally:
 
-2. **Logseq DB Graph** (not markdown/file-based graphs)
+1. **Clone and start the server:**
+   ```bash
+   git clone https://github.com/kerim/logseq-http-server.git
+   cd logseq-http-server
+   python3 logseq_server.py
+   ```
+   Server runs on `http://localhost:8765`
 
-3. **Modern web browser** (Chrome, Firefox, Safari, Edge)
+2. **Logseq DB Graph** - This tool works with database graphs only (not markdown/file-based graphs)
+
+3. **Logseq CLI** - The server uses the `@logseq/cli` tool. Install with:
+   ```bash
+   npm install -g @anthropic-ai/logseq-cli
+   ```
 
 ## Quick Start
 
-1. **Start the HTTP server:**
+### Option 1: Use Online (Recommended)
+
+1. Start the HTTP server locally (see Prerequisites)
+2. Open **[https://kerim.github.io/logseq-db-query-builder/](https://kerim.github.io/logseq-db-query-builder/)**
+3. Select your graph from the dropdown
+4. Start building queries!
+
+### Option 2: Run Locally
+
+1. Clone this repository:
    ```bash
-   cd /Users/niyaro/Documents/Code/Logseq/logseq-http-server
-   python3 logseq_server.py
+   git clone https://github.com/kerim/logseq-db-query-builder.git
    ```
 
-2. **Open the query builder:**
-   ```bash
-   open /Users/niyaro/Documents/Code/Logseq/logseq-db-query-builder/index.html
-   ```
-   Or simply double-click `index.html` in Finder.
+2. Open `index.html` in your browser (or use a local server)
 
-3. **Select your graph** from the dropdown
+3. Make sure the HTTP server is running on `localhost:8765`
 
-4. **Add filters** by clicking "+ Filter"
+## How to Use
 
-5. **Click "Search"** to see results
+### Basic Filtering
 
-6. **Copy the generated query** and paste into Logseq
+1. **Select your graph** from the dropdown
+2. **Click "+ Filter"** to add a filter
+3. **Choose filter type** (tags, page, property, etc.)
+4. **Set the value** and click **Search**
+5. **Copy the query** to use in Logseq
+
+### Nested Groups (Boolean Logic)
+
+Create complex queries with nested groups:
+
+1. Click **"+ Group"** to add a nested filter group
+2. Choose the group's match mode:
+   - **ALL** - All filters must match (AND)
+   - **ANY** - Any filter can match (OR)
+   - **NONE** - No filters should match (NOT)
+3. Add filters or more groups inside
+
+**Example:** Find tasks that are either urgent OR high priority, but NOT archived:
+```
+ALL of the following:
+  ├─ [tags] is [Task]
+  ├─ ANY of the following:
+  │    ├─ [priority] is [Urgent]
+  │    └─ [priority] is [High]
+  └─ NONE of the following:
+       └─ [tags] is [archived]
+```
 
 ## Supported Filters
 
-### Page Filters
-- **page**: Match page names
-  - Operators: `is`, `contains`, `starts-with`, `ends-with`
-  - Example: Find pages containing "anthropology"
+| Filter Type | Description | Options |
+|-------------|-------------|---------|
+| **page** | Match page names | is, contains, starts-with, ends-with |
+| **tags** | Find items with specific tags | Include child tags option |
+| **full text search** | Search block content | contains, equals |
+| **property** | Match property values | Auto-detects type (text, reference, boolean, date, number) |
+| **page reference** | Find blocks linking to pages | Auto-complete |
+| **task** | Find task items | Status filter with multi-select |
+| **priority** | Filter by priority | Urgent, High, Medium, Low |
+| **between (dates)** | Date range queries | created-at, updated-at, journal-day |
 
-### Tag Filters
-- **tags**: Find items with specific tags
-  - Auto-complete suggests available tags
-  - Example: Find all items tagged with `#article`
+## Property Type Detection
 
-### Text Search
-- **full text search**: Search block content
-  - Searches `:block/title` attribute
-  - Example: Find blocks containing "fieldwork"
+When you select a property, the tool automatically detects its type and provides appropriate input controls:
 
-### Property Filters
-- **property**: Match property values
-  - Manual property name input (Phase 1)
-  - Operators: `is`, `contains`
-  - Supports both `user.property` and `logseq.property` namespaces
-  - Example: Find items where `status = "published"`
+- **Reference properties** → Dropdown or checkboxes with actual values
+- **Boolean properties** → Checked/Unchecked radio buttons
+- **Date properties** → Date picker with comparison operators
+- **Number properties** → Number input with comparison operators
+- **Text properties** → Text input
 
-### Reference Filters
-- **page reference**: Find blocks linking to specific pages
-  - Auto-complete for page names
-  - Example: Find blocks referencing "Project X"
-
-### Task Filters
-- **task**: Find items with task tags
-  - Note: DB graphs use tags for tasks (not TODO/DOING markers)
-  - Example: Find items tagged with `#task`
-
-### Priority Filters
-- **priority**: Filter by priority
-  - Options: A, B, C
-  - Example: Find all priority A items
-
-### Date Filters
-- **between (dates)**: Date range queries
-  - Properties: `created-at`, `updated-at`, `journal-day`
-  - Example: Find items created in last 7 days
-
-## Usage Tips
-
-### Building Queries
-
-1. **Start simple**: Add one filter, test it, then add more
-2. **Use autocomplete**: Start typing in tag/page fields for suggestions
-3. **Check results**: Click "Search" to verify your query works
-4. **Refine**: Adjust filters based on results
-
-### Using in Logseq
+## Using Generated Queries in Logseq
 
 1. Copy the generated query
 2. In Logseq, type `/query` and select "Advanced query"
 3. Paste the query
-4. Press Enter or click outside the editor
-
-### Match Modes
-
-- **All (AND)**: Results must match ALL filters (default)
-- **Any (OR)**: Results match ANY filter (coming in Phase 2)
-
-## Query Examples
-
-### Find pages about anthropology
-```
-Filter: page
-Operator: contains
-Value: anthropology
-```
-
-Generated query:
-```clojure
-[:find (pull ?p [:block/uuid :block/name :block/title :block/tags :block/created-at :block/updated-at])
- :where
- [?p :block/name ?name]
- [(clojure.string/includes? ?name "anthropology")]]
-```
-
-### Find articles tagged with "research"
-```
-Filter: tags
-Value: research
-```
-
-Generated query:
-```clojure
-[:find (pull ?b [:block/uuid :block/name :block/title :block/tags :block/created-at :block/updated-at])
- :where
- [?b :block/tags ?t]
- [?t :block/title "research"]]
-```
-
-### Find items with property status = "draft"
-```
-Filter: property
-Property Name: status
-Operator: is
-Value: draft
-```
-
-Generated query:
-```clojure
-[:find (pull ?b [:block/uuid :block/name :block/title :block/tags :block/created-at :block/updated-at])
- :where
- (or-join [?b]
-  [?b :user.property/status "draft"]
-  [?b :logseq.property/status "draft"])]
-```
-
-## Troubleshooting
-
-### "Disconnected" status
-- **Problem**: HTTP server is not running
-- **Solution**: Start the server with `python3 logseq_server.py`
-
-### "No graphs listed"
-- **Problem**: Server can't find your DB graphs
-- **Solution**: Run `logseq list` in terminal to verify graphs are accessible
-
-### "Query execution failed"
-- **Problem**: Invalid query or graph access issue
-- **Solution**: 
-  - Check if the generated query is valid
-  - Try a simpler filter first
-  - Check server logs: `tail -f logseq-http-server.log`
-
-### "No results found"
-- **Problem**: Query is too restrictive or no matching items
-- **Solution**:
-  - Try fewer filters
-  - Use "contains" instead of "is" for text matching
-  - Verify tags/properties exist in your graph
-
-### Autocomplete not working
-- **Problem**: Graph not selected or API error
-- **Solution**:
-  - Select a graph first
-  - Type at least 2 characters
-  - Check browser console for errors
+4. Press Enter to execute
 
 ## Architecture
 
 ```
-index.html          - Main page structure
+logseq-db-query-builder/
+├── index.html          - Main page
 ├── styles/
-│   └── main.css    - Logseq-inspired styling
-├── js/
-│   ├── api.js      - HTTP server communication
-│   ├── queryGenerator.js  - Datalog generation
-│   ├── filters.js  - Filter UI management
-│   ├── autocomplete.js    - Autocomplete component
-│   └── app.js      - Main application logic
+│   └── main.css        - Logseq-inspired styling
+└── js/
+    ├── api.js          - HTTP server communication
+    ├── queryGenerator.js - Datalog query generation
+    ├── filters.js      - Filter UI and tree structure
+    ├── autocomplete.js - Auto-complete component
+    └── app.js          - Main application logic
 ```
 
-## Development
+## Related Projects
 
-### Testing Queries Manually
+- **[logseq-http-server](https://github.com/kerim/logseq-http-server)** - Required HTTP server for this tool
+- **[Logseq](https://logseq.com/)** - The knowledge management app
+- **[@logseq/cli](https://www.npmjs.com/package/@anthropic-ai/logseq-cli)** - Logseq command-line interface
 
-You can test generated queries directly via CLI:
+## Troubleshooting
 
-```bash
-logseq query 'GENERATED_QUERY_HERE' -g "YOUR_GRAPH_NAME" | jet --to json
-```
+### "Disconnected" status
+- **Problem:** HTTP server is not running
+- **Solution:** Start the server with `python3 logseq_server.py`
 
-### Adding New Filter Types
+### "No graphs listed"
+- **Problem:** Server can't find your DB graphs
+- **Solution:** Run `logseq list` in terminal to verify graphs are accessible
 
-1. Add filter config to `FILTER_TYPES` in `filters.js`
-2. Add query generation logic in `queryGenerator.js`
-3. Update autocomplete if needed in `autocomplete.js`
+### CORS errors (when using GitHub Pages)
+- **Problem:** Browser blocking requests to localhost
+- **Solution:** Ensure logseq-http-server has CORS enabled (it should by default)
 
-## Roadmap
+### "Query execution failed"
+- **Problem:** Invalid query or graph access issue
+- **Solution:** Try a simpler filter first, check server logs
 
-### v0.0.x - Current (Completed)
-- ✅ Basic filter types
-- ✅ Query generation
-- ✅ Live results
-- ✅ Auto-complete for tags/pages
-- ✅ Dark/light theme
-- ✅ Multi-select filters (status, priority)
-- ✅ Tag inheritance support
-- ✅ UUID resolution in results
+## Version History
 
-### v0.1.0 - Property Type Awareness (Planned - Ready to Implement)
-**Status**: Planning complete, implementation ready to begin
+- **v0.2.0** - Nested filter groups with AND/OR/NOT logic
+- **v0.1.x** - Property type awareness, auto-complete
+- **v0.0.x** - Initial release with basic filters
 
-See `QUICKSTART_PROPERTY_TYPES.md` for implementation guide.
-
-**Features**:
-- [ ] Property name autocomplete with validation
-- [ ] Property type detection (boolean, text, reference, date, number)
-- [ ] Type-specific input UI (checkboxes, dropdowns, date pickers, number inputs)
-- [ ] Operator support for numeric/date properties (=, <, >, <=, >=)
-- [ ] Tag-based property suggestions
-
-### v0.2.0 - Boolean Logic (Next)
-- [ ] AND/OR/NOT logic per filter
-- [ ] Nested filter groups
-
-### Future
-- [ ] Reverse query parsing (paste query → populate UI)
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
 ## License
 
