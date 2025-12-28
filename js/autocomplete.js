@@ -196,6 +196,8 @@ class Autocomplete {
                 }
                 // Trigger input event to update filter state
                 this.activeInput.dispatchEvent(new Event('input', { bubbles: true }));
+                // Trigger custom event for autocomplete-selected (used by tag property suggestions)
+                this.activeInput.dispatchEvent(new Event('autocomplete-selected', { bubbles: true }));
             }
         }
         this.hide();

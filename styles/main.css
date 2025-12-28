@@ -395,6 +395,21 @@ section {
     margin-top: var(--spacing-sm);
 }
 
+/* Property suggestions hint for tags */
+.property-suggestions-hint {
+    padding: var(--spacing-sm);
+    background: var(--bg-secondary);
+    border-left: 3px solid var(--accent-primary);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    line-height: 1.4;
+    color: var(--text-secondary);
+}
+
+.property-suggestions-hint:empty {
+    display: none;
+}
+
 .filter-actions {
     display: flex;
     gap: var(--spacing-md);

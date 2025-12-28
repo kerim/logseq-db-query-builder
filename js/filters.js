@@ -237,6 +237,70 @@ class FilterManager {
                         extensionsWrapper.appendChild(extensionsLabel);
                         container.appendChild(extensionsWrapper);
                     }
+
+                    // Add property suggestions hint for tags
+                    if (filter.type === 'tags') {
+                        const propertiesHintContainer = document.createElement('div');
+                        propertiesHintContainer.className = 'property-suggestions-hint';
+                        propertiesHintContainer.style.marginTop = '8px';
+                        propertiesHintContainer.style.fontSize = '0.9em';
+                        propertiesHintContainer.style.color = 'var(--text-muted)';
+                        container.appendChild(propertiesHintContainer);
+
+                        // Function to update property suggestions
+                        const updatePropertySuggestions = async () => {
+                            const tagValue = filter.value?.trim();
+                            if (!tagValue || !window.app?.state?.graph) {
+                                propertiesHintContainer.textContent = '';
+                                return;
+                            }
+
+                            try {
+                                const properties = await window.app.api.getTagProperties(
+                                    window.app.state.graph,
+                                    tagValue
+                                );
+
+                                if (properties && properties.length > 0) {
+                                    // Format property names for display
+                                    const propNames = properties.map(prop => {
+                                        // Extract clean name from identifier
+                                        // e.g., ":user.property/Status-ABC123" -> "Status"
+                                        const ident = prop[':db/ident'] || prop['db/ident'];
+                                        if (ident) {
+                                            const parts = ident.split('/');
+                                            if (parts.length === 2) {
+                                                return parts[1].replace(/-[A-Za-z0-9_]+$/, '');
+                                            }
+                                        }
+                                        return prop;
+                                    }).filter(name => name); // Remove any nulls
+
+                                    if (propNames.length > 0) {
+                                        propertiesHintContainer.innerHTML = `<span style="opacity: 0.7;">💡 Associated properties:</span> ${propNames.join(', ')}`;
+                                    } else {
+                                        propertiesHintContainer.textContent = '';
+                                    }
+                                } else {
+                                    propertiesHintContainer.textContent = '';
+                                }
+                            } catch (error) {
+                                console.warn('Failed to get tag properties:', error);
+                                propertiesHintContainer.textContent = '';
+                            }
+                        };
+
+                        // Listen for tag value changes
+                        autocompleteInput.addEventListener('blur', updatePropertySuggestions);
+
+                        // Also update when autocomplete selection happens (via custom event)
+                        autocompleteInput.addEventListener('autocomplete-selected', updatePropertySuggestions);
+
+                        // Initial update if value already exists
+                        if (filter.value) {
+                            updatePropertySuggestions();
+                        }
+                    }
                     break;
 
                 case 'property-name':
