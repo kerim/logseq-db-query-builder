@@ -294,7 +294,10 @@ class LogseqAPI {
 
             const result = await this.executeQuery(graphName, query);
             if (result.data.length > 0) {
-                const props = result.data[0][0][':logseq.property.class/properties'];
+                // Access result directly (not nested), check both key formats
+                const tagData = result.data[0];
+                const props = tagData['logseq.property.class/properties'] ||
+                              tagData[':logseq.property.class/properties'];
                 return props || [];
             }
             return [];
