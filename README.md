@@ -249,7 +249,6 @@ See `QUICKSTART_PROPERTY_TYPES.md` for implementation guide.
 
 ### Future
 - [ ] Reverse query parsing (paste query → populate UI)
-- [ ] Export results as CSV/JSON
 
 ## License
 
