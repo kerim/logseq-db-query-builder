@@ -290,10 +290,12 @@ class FilterManager {
 
                                     if (Array.isArray(sampleValue)) {
                                         cardinality = ':db.cardinality/many';
-                                        if (sampleValue.length > 0 && typeof sampleValue[0] === 'object' && sampleValue[0][':db/id']) {
+                                        if (sampleValue.length > 0 && typeof sampleValue[0] === 'object' &&
+                                            (sampleValue[0][':db/id'] || sampleValue[0]['db/id'])) {
                                             valueType = ':db.type/ref';
                                         }
-                                    } else if (typeof sampleValue === 'object' && sampleValue[':db/id']) {
+                                    } else if (typeof sampleValue === 'object' &&
+                                               (sampleValue[':db/id'] || sampleValue['db/id'])) {
                                         valueType = ':db.type/ref';
                                     } else if (typeof sampleValue === 'boolean') {
                                         valueType = ':db.type/boolean';
