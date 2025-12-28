@@ -145,22 +145,25 @@ class LogseqAPI {
                             [?t :block/title]]`;
 
             const result = await this.executeQuery(graphName, query);
+            console.log('[getTags] Raw result.data:', result.data?.slice(0, 3));
 
             // Deduplicate and filter tags
             const tagMap = new Map();
             result.data.forEach(item => {
-                const tag = item[0]; // Pull returns nested array
-                if (tag && tag['block/title']) {
+                // Result structure: item IS the object directly, NOT item[0]
+                // Check both formats for the title key
+                const title = item['block/title'] || item[':block/title'];
+                const uuid = item['block/uuid'] || item[':block/uuid'];
+
+                if (title) {
                     // Filter in JavaScript (case-insensitive)
-                    if (!searchTerm || tag['block/title'].toLowerCase().includes(searchTerm.toLowerCase())) {
-                        tagMap.set(tag['block/title'], {
-                            title: tag['block/title'],
-                            uuid: tag['block/uuid']
-                        });
+                    if (!searchTerm || title.toLowerCase().includes(searchTerm.toLowerCase())) {
+                        tagMap.set(title, { title, uuid });
                     }
                 }
             });
 
+            console.log('[getTags] Filtered tags:', tagMap.size);
             return Array.from(tagMap.values());
         } catch (error) {
             console.error('Failed to get tags:', error);
