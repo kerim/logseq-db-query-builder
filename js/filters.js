@@ -260,21 +260,39 @@ class FilterManager {
                                     window.app.state.graph,
                                     tagValue
                                 );
+                                console.log('[PROP-SUGGESTIONS] Raw properties:', properties);
 
                                 if (properties && properties.length > 0) {
                                     // Format property names for display
                                     const propNames = properties.map(prop => {
-                                        // Extract clean name from identifier
-                                        // e.g., ":user.property/Status-ABC123" -> "Status"
+                                        console.log('[PROP-SUGGESTIONS] Processing prop:', prop, typeof prop);
+                                        // Handle different formats:
+                                        // 1. String identifier directly
+                                        if (typeof prop === 'string') {
+                                            const parts = prop.split('/');
+                                            if (parts.length === 2) {
+                                                return parts[1].replace(/-[A-Za-z0-9_]+$/, '');
+                                            }
+                                            return prop;
+                                        }
+                                        // 2. Object with db/ident
                                         const ident = prop[':db/ident'] || prop['db/ident'];
                                         if (ident) {
                                             const parts = ident.split('/');
                                             if (parts.length === 2) {
                                                 return parts[1].replace(/-[A-Za-z0-9_]+$/, '');
                                             }
+                                            return ident;
                                         }
-                                        return prop;
-                                    }).filter(name => name); // Remove any nulls
+                                        // 3. Object with block/title
+                                        const title = prop[':block/title'] || prop['block/title'];
+                                        if (title) {
+                                            return title;
+                                        }
+                                        // 4. Fallback - stringify to see what it is
+                                        console.warn('[PROP-SUGGESTIONS] Unknown prop format:', JSON.stringify(prop));
+                                        return null;
+                                    }).filter(name => name && typeof name === 'string'); // Remove nulls and non-strings
 
                                     if (propNames.length > 0) {
                                         propertiesHintContainer.innerHTML = `<span style="opacity: 0.7;">💡 Associated properties:</span> ${propNames.join(', ')}`;
