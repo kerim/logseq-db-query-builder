@@ -248,23 +248,38 @@ class FilterManager {
                     propNameInput.setAttribute('data-autocomplete', 'property');  // Enable autocomplete
 
                     propNameInput.addEventListener('input', async (e) => {
+                        console.log('[PROP-INPUT] === Handler Start ===');
+                        console.log('[PROP-INPUT] value:', e.target.value);
+
                         filter.propertyName = e.target.value;
 
                         // Get full property identifier from autocomplete
                         const propertyIdent = e.target.getAttribute('data-property-ident');
+                        console.log('[PROP-INPUT] propertyIdent:', propertyIdent);
+                        console.log('[PROP-INPUT] graph:', window.app.state.graph);
+
                         if (propertyIdent) {
                             filter.propertyIdent = propertyIdent;
                         }
 
                         // Infer property type from actual usage
                         if (propertyIdent && window.app.state.graph) {
+                            console.log('[PROP-INPUT] Entering async block...');
                             try {
                                 // Get a sample value to infer the type
                                 const sampleQuery = `[:find (pull ?b [${propertyIdent}]) :where [?b ${propertyIdent}] :limit 1]`;
-                                const sampleResult = await window.app.api.executeQuery(window.app.state.graph, sampleQuery);
+                                console.log('[PROP-INPUT] Query:', sampleQuery);
 
-                                if (sampleResult.data.length > 0) {
+                                const sampleResult = await window.app.api.executeQuery(window.app.state.graph, sampleQuery);
+                                console.log('[PROP-INPUT] Result:', JSON.stringify(sampleResult, null, 2));
+
+                                if (sampleResult.data && sampleResult.data.length > 0) {
+                                    console.log('[PROP-INPUT] Data[0]:', sampleResult.data[0]);
+                                    console.log('[PROP-INPUT] Data[0][0]:', sampleResult.data[0][0]);
+
                                     const sampleValue = sampleResult.data[0][0][propertyIdent];
+                                    console.log('[PROP-INPUT] Sample value:', sampleValue);
+                                    console.log('[PROP-INPUT] Value type:', typeof sampleValue);
 
                                     // Infer type from sample value
                                     let valueType = ':db.type/string';  // default
@@ -289,20 +304,27 @@ class FilterManager {
                                         valueType: valueType,
                                         cardinality: cardinality
                                     };
+                                    console.log('[PROP-INPUT] Schema SET:', filter.propertySchema);
 
                                     // Re-render value input based on inferred type
                                     this.renderPropertyValueInput(filter, container);
 
                                     // Call notifyChange AFTER schema is set and value input is rendered
                                     this.notifyChange();
+                                } else {
+                                    console.log('[PROP-INPUT] NO DATA - query returned empty');
                                 }
                             } catch (error) {
-                                console.error('Failed to infer property type:', error);
+                                console.error('[PROP-INPUT] ERROR:', error);
+                                console.error('[PROP-INPUT] Error stack:', error.stack);
                             }
                         } else {
+                            console.log('[PROP-INPUT] SKIPPED - missing ident or graph');
                             // No property ident - call notifyChange for property name change
                             this.notifyChange();
                         }
+
+                        console.log('[PROP-INPUT] === Handler End ===');
                     });
                     container.appendChild(propNameInput);
                     break;
