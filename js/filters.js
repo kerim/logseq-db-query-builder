@@ -277,9 +277,10 @@ class FilterManager {
 
                                 if (sampleResult.data && sampleResult.data.length > 0) {
                                     console.log('[PROP-INPUT] Data[0]:', sampleResult.data[0]);
-                                    console.log('[PROP-INPUT] Data[0][0]:', sampleResult.data[0][0]);
 
-                                    const sampleValue = sampleResult.data[0][0][queryIdent];
+                                    // Result structure: [{propertyIdent: value}, ...]
+                                    // Note: Keys in result don't have ':' prefix
+                                    const sampleValue = sampleResult.data[0][propertyIdent];
                                     console.log('[PROP-INPUT] Sample value:', sampleValue);
                                     console.log('[PROP-INPUT] Value type:', typeof sampleValue);
 
