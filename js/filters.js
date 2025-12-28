@@ -605,6 +605,10 @@ class FilterManager {
             wrapper.appendChild(checkboxGroup);
         }
 
+        // Remove any existing value inputs before appending (handles async race conditions)
+        const existingInputs = container.querySelectorAll('.property-value-input');
+        existingInputs.forEach(el => el.remove());
+
         container.appendChild(wrapper);
     }
 
@@ -639,6 +643,11 @@ class FilterManager {
         });
 
         wrapper.appendChild(radioGroup);
+
+        // Remove any existing value inputs before appending
+        const existingInputs = container.querySelectorAll('.property-value-input');
+        existingInputs.forEach(el => el.remove());
+
         container.appendChild(wrapper);
     }
 
@@ -684,6 +693,11 @@ class FilterManager {
 
         wrapper.appendChild(operatorSelect);
         wrapper.appendChild(dateInput);
+
+        // Remove any existing value inputs before appending
+        const existingInputs = container.querySelectorAll('.property-value-input');
+        existingInputs.forEach(el => el.remove());
+
         container.appendChild(wrapper);
     }
 
@@ -730,6 +744,11 @@ class FilterManager {
 
         wrapper.appendChild(operatorSelect);
         wrapper.appendChild(numberInput);
+
+        // Remove any existing value inputs before appending
+        const existingInputs = container.querySelectorAll('.property-value-input');
+        existingInputs.forEach(el => el.remove());
+
         container.appendChild(wrapper);
     }
 
@@ -752,6 +771,11 @@ class FilterManager {
         });
 
         wrapper.appendChild(input);
+
+        // Remove any existing value inputs before appending
+        const existingInputs = container.querySelectorAll('.property-value-input');
+        existingInputs.forEach(el => el.remove());
+
         container.appendChild(wrapper);
     }
 
