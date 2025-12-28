@@ -267,7 +267,9 @@ class FilterManager {
                             console.log('[PROP-INPUT] Entering async block...');
                             try {
                                 // Get a sample value to infer the type
-                                const sampleQuery = `[:find (pull ?b [${propertyIdent}]) :where [?b ${propertyIdent}] :limit 1]`;
+                                // Ensure property ident has : prefix for query
+                                const queryIdent = propertyIdent.startsWith(':') ? propertyIdent : `:${propertyIdent}`;
+                                const sampleQuery = `[:find (pull ?b [${queryIdent}]) :where [?b ${queryIdent}] :limit 1]`;
                                 console.log('[PROP-INPUT] Query:', sampleQuery);
 
                                 const sampleResult = await window.app.api.executeQuery(window.app.state.graph, sampleQuery);
@@ -277,7 +279,7 @@ class FilterManager {
                                     console.log('[PROP-INPUT] Data[0]:', sampleResult.data[0]);
                                     console.log('[PROP-INPUT] Data[0][0]:', sampleResult.data[0][0]);
 
-                                    const sampleValue = sampleResult.data[0][0][propertyIdent];
+                                    const sampleValue = sampleResult.data[0][0][queryIdent];
                                     console.log('[PROP-INPUT] Sample value:', sampleValue);
                                     console.log('[PROP-INPUT] Value type:', typeof sampleValue);
 

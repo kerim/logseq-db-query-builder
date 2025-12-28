@@ -238,7 +238,8 @@ class QueryGenerator {
 
         // If we have schema info, use type-specific query generation
         if (propertySchema && propertySchema.ident) {
-            const propIdent = propertySchema.ident;
+            // Ensure property ident has : prefix for query
+            const propIdent = propertySchema.ident.startsWith(':') ? propertySchema.ident : `:${propertySchema.ident}`;
 
             switch (propertySchema.valueType) {
                 case ':db.type/boolean':

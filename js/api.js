@@ -264,9 +264,11 @@ class LogseqAPI {
      */
     async getPropertyValues(graphName, propertyIdent) {
         try {
+            // Ensure property ident has : prefix for query
+            const queryIdent = propertyIdent.startsWith(':') ? propertyIdent : `:${propertyIdent}`;
             const query = `[:find (pull ?val [:block/title :db/id])
                             :where
-                            [_ ${propertyIdent} ?val]]`;
+                            [_ ${queryIdent} ?val]]`;
 
             const result = await this.executeQuery(graphName, query);
             return result.data.map(item => ({
