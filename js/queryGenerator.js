@@ -77,10 +77,16 @@ class QueryGenerator {
                 return filter.value && filter.value.trim().length > 0;
             
             case 'property':
-                return filter.propertyName && 
-                       filter.propertyName.trim().length > 0 && 
-                       filter.value && 
-                       filter.value.trim().length > 0;
+                // Property value can be string or array (checkbox selection)
+                const hasPropertyName = filter.propertyName &&
+                                        filter.propertyName.trim().length > 0;
+                let hasPropertyValue = false;
+                if (Array.isArray(filter.value)) {
+                    hasPropertyValue = filter.value.length > 0;
+                } else if (filter.value) {
+                    hasPropertyValue = filter.value.trim().length > 0;
+                }
+                return hasPropertyName && hasPropertyValue;
             
             case 'task':
             case 'priority':
