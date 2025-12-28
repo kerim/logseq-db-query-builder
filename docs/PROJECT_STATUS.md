@@ -1,16 +1,45 @@
 # Logseq DB Query Builder - Project Status
 
-## 🎉 v0.1.2 Released! (2025-12-28)
+## 🎉 v0.1.7 Released! (2025-12-28)
 
-**Current Version**: v0.1.2
+**Current Version**: v0.1.7
 
-### What's New in v0.1.2
+### What's New in v0.1.7
+- 🐛 **CRITICAL FIX**: Property filters with checkbox selection now included in queries
+- ✅ Fixed `isValidFilter()` to handle array values (not just strings)
+- ✅ Arrays don't have `.trim()` method - now checks `Array.isArray()` first
+- ✅ Tag-based property suggestions workflow now fully functional
+- ✅ **Phase 5 Complete!** Tag autocomplete → property suggestions → query generation all working
+
+### Recent Releases
+
+#### v0.1.6 (2025-12-28)
+- 🐛 **FIX**: Property suggestions now show readable property names
+- ✅ Fixed `getTagProperties()` to use nested pull pattern
+- ✅ Changed from entity references `{db/id: 169}` to full property objects
+- ✅ Query now pulls `:db/ident` and `:block/title` for each property
+
+#### v0.1.5 (2025-12-28)
+- 🐛 **FIX**: Property suggestions display correctly (no more `[object Object]`)
+- ✅ Fixed property name extraction to handle multiple formats
+- ✅ Handles string identifiers, objects with db/ident, and objects with block/title
+- ✅ Filters out unknown formats to prevent display errors
+
+#### v0.1.4 (2025-12-28)
+- 🐛 **FIX**: Tag autocomplete now appears when typing
+- ✅ Fixed `getTags()` result parsing - removed nested array assumption
+- ✅ Changed from `item[0]['block/title']` to `item['block/title']`
+- ✅ Checks both key formats (with/without `:` prefix)
+
+#### v0.1.3 (2025-12-28)
+- 🔧 **DIAGNOSTIC**: Added comprehensive logging to trace autocomplete flow
+- ✅ Console logging at every step: FOCUS, ATTACH, INPUT, FETCH, SHOW
+- ✅ Identified silent failure in `getTags()` returning empty results
+
+#### v0.1.2 (2025-12-28)
 - 🐛 **FIX**: Property suggestions now appear after selecting tag
 - ✅ Fixed getTagProperties() data structure access (data[0] not data[0][0])
 - ✅ Fixed key access to check both formats (with/without ':' prefix)
-- ✅ Same pattern fix applied in v0.0.25-v0.0.27
-
-### Recent Releases
 
 #### v0.1.1 (2025-12-28)
 - 🐛 **CRITICAL FIX**: Tag autocomplete now works correctly
