@@ -100,11 +100,16 @@ class App {
 
         // Set up autocomplete on filter inputs (delegated event)
         document.getElementById('filters-container').addEventListener('focus', (e) => {
-            if (e.target.classList.contains('filter-input') && 
+            console.log('[FOCUS] Event fired on:', e.target.tagName, e.target.className);
+            if (e.target.classList.contains('filter-input') &&
                 e.target.hasAttribute('data-autocomplete')) {
                 const type = e.target.getAttribute('data-autocomplete');
+                console.log('[FOCUS] Autocomplete type:', type, 'Graph:', this.state.graph);
                 if (this.state.graph) {
+                    console.log('[FOCUS] Calling attach()...');
                     this.autocomplete.attach(e.target, this.state.graph, type);
+                } else {
+                    console.log('[FOCUS] No graph selected, skipping attach');
                 }
             }
         }, true);

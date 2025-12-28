@@ -50,17 +50,22 @@ class Autocomplete {
      * @param {string} type - Type of autocomplete (tags, page-reference, property)
      */
     attach(input, graphName, type) {
+        console.log('[ATTACH] Called with type:', type, 'graph:', graphName);
         // Prevent duplicate attachment
         if (input.hasAttribute('data-autocomplete-attached')) {
+            console.log('[ATTACH] Already attached, skipping');
             return;
         }
+        console.log('[ATTACH] Attaching new listener...');
         input.setAttribute('data-autocomplete-attached', 'true');
 
         input.addEventListener('input', async (e) => {
             const value = e.target.value;
+            console.log('[INPUT] Value:', value, 'Length:', value.length);
 
             // Skip if we just selected (prevents re-trigger)
             if (this.justSelected) {
+                console.log('[INPUT] justSelected flag, skipping');
                 this.justSelected = false;
                 return;
             }
@@ -69,17 +74,20 @@ class Autocomplete {
             clearTimeout(this.debounceTimer);
 
             if (value.length < 2) {
+                console.log('[INPUT] Too short (<2), hiding');
                 this.hide();
                 return;
             }
 
+            console.log('[INPUT] Starting 300ms debounce...');
             this.debounceTimer = setTimeout(async () => {
+                console.log('[INPUT] Debounce complete, fetching suggestions...');
                 try {
                     this.activeInput = input;
                     await this.fetchSuggestions(graphName, type, value);
                     this.show(input);
                 } catch (error) {
-                    console.error('Autocomplete fetch failed:', error);
+                    console.error('[INPUT] Autocomplete fetch failed:', error);
                     this.hide();
                 }
             }, 300);
@@ -96,19 +104,25 @@ class Autocomplete {
      * Fetch suggestions based on type
      */
     async fetchSuggestions(graphName, type, searchTerm) {
+        console.log('[FETCH] type:', type, 'term:', searchTerm, 'graph:', graphName);
         this.suggestions = [];
 
         switch (type) {
             case 'tags':
+                console.log('[FETCH] Calling getTags()...');
                 const tags = await this.api.getTags(graphName, searchTerm);
+                console.log('[FETCH] Got tags:', tags.length, tags);
                 this.suggestions = tags.map(tag => ({
                     label: tag.title,
                     value: tag.title
                 }));
+                console.log('[FETCH] Mapped to suggestions:', this.suggestions.length);
                 break;
 
             case 'page-reference':
+                console.log('[FETCH] Calling searchPages()...');
                 const pages = await this.api.searchPages(graphName, searchTerm);
+                console.log('[FETCH] Got pages:', pages.length);
                 this.suggestions = pages.map(page => ({
                     label: page.title || page.name,
                     value: page.name
@@ -116,7 +130,9 @@ class Autocomplete {
                 break;
 
             case 'property':
+                console.log('[FETCH] Calling getProperties()...');
                 const props = await this.api.getProperties(graphName, searchTerm);
+                console.log('[FETCH] Got properties:', props.length);
                 this.suggestions = props.map(p => ({
                     label: p.title,
                     value: p.title,
@@ -125,7 +141,7 @@ class Autocomplete {
                 break;
 
             default:
-                console.warn('Unknown autocomplete type:', type);
+                console.warn('[FETCH] Unknown autocomplete type:', type);
         }
     }
 
@@ -133,10 +149,13 @@ class Autocomplete {
      * Show dropdown with suggestions
      */
     show(input) {
+        console.log('[SHOW] suggestions.length:', this.suggestions.length);
         if (this.suggestions.length === 0) {
+            console.log('[SHOW] No suggestions, hiding');
             this.hide();
             return;
         }
+        console.log('[SHOW] Positioning and rendering dropdown...');
 
         // Position dropdown below input
         const rect = input.getBoundingClientRect();
