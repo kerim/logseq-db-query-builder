@@ -287,20 +287,24 @@ class LogseqAPI {
      * Get properties associated with a tag
      * @param {string} graphName - Name of the graph
      * @param {string} tagName - Tag name
-     * @returns {Promise<Array>} Array of property identifiers
+     * @returns {Promise<Array>} Array of property objects with db/ident and block/title
      */
     async getTagProperties(graphName, tagName) {
         try {
-            const query = `[:find (pull ?tag [:logseq.property.class/properties])
+            // Use nested pull to get property details, not just entity references
+            const query = `[:find (pull ?tag [{:logseq.property.class/properties [:db/ident :block/title]}])
                             :where
                             [?tag :block/title "${tagName}"]]`;
 
             const result = await this.executeQuery(graphName, query);
+            console.log('[getTagProperties] Raw result:', result.data);
+
             if (result.data.length > 0) {
                 // Access result directly (not nested), check both key formats
                 const tagData = result.data[0];
                 const props = tagData['logseq.property.class/properties'] ||
                               tagData[':logseq.property.class/properties'];
+                console.log('[getTagProperties] Extracted props:', props);
                 return props || [];
             }
             return [];
