@@ -28,7 +28,7 @@ This tool requires the **Logseq HTTP Server** to be running locally:
 
 2. **Logseq DB Graph** - This tool works with database graphs only (not markdown/file-based graphs)
 
-3. **Logseq CLI** - The server uses the `@logseq/cli` tool. Install with:
+3. **[Logseq CLI](https://www.npmjs.com/package/@logseq/cli)** - The server uses the `@logseq/cli` tool. Install with:
    ```bash
    npm i @logseq/cli
    ```
@@ -134,7 +134,7 @@ logseq-db-query-builder/
 
 - **[logseq-http-server](https://github.com/kerim/logseq-http-server)** - Required HTTP server for this tool
 - **[Logseq](https://logseq.com/)** - The knowledge management app
-- **[@logseq/cli](https://www.npmjs.com/package/@anthropic-ai/logseq-cli)** - Logseq command-line interface
+- **[@logseq/cli](https://www.npmjs.com/package/@logseq/cli)** - Logseq command-line interface
 
 ## Troubleshooting
 
