@@ -30,7 +30,7 @@ This tool requires the **Logseq HTTP Server** to be running locally:
 
 3. **Logseq CLI** - The server uses the `@logseq/cli` tool. Install with:
    ```bash
-   npm install -g @anthropic-ai/logseq-cli
+   npm install -g @logseq/cli
    ```
 
 ## Quick Start

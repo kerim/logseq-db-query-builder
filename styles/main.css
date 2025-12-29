@@ -226,12 +226,27 @@ body {
 }
 
 .setup-help a {
-    color: var(--accent-primary);
+    color: #60a5fa;  /* Lighter blue, readable on dark backgrounds */
     text-decoration: none;
 }
 
 .setup-help a:hover {
     text-decoration: underline;
+    color: #93c5fd;  /* Even lighter on hover */
+}
+
+/* Light theme - darker blue for links */
+body.light-theme .setup-help a {
+    color: #2563eb;
+}
+
+body.light-theme .setup-help a:hover {
+    color: #1d4ed8;
+}
+
+/* GitHub icon */
+.github-icon {
+    display: block;
 }
 
 /* ===========================
