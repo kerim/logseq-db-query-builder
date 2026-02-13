@@ -368,8 +368,12 @@ class FilterManager {
                                             }
                                             return prop;
                                         }
-                                        // 2. Object with db/ident
-                                        const ident = prop[':db/ident'] || prop['db/ident'];
+                                        // 2. Object with short keys (title/ident)
+                                        if (prop.title) {
+                                            return prop.title;
+                                        }
+                                        // 3. Object with db/ident
+                                        const ident = prop[':db/ident'] || prop['db/ident'] || prop['ident'];
                                         if (ident) {
                                             const parts = ident.split('/');
                                             if (parts.length === 2) {
@@ -377,7 +381,7 @@ class FilterManager {
                                             }
                                             return ident;
                                         }
-                                        // 3. Object with block/title
+                                        // 4. Object with block/title
                                         const title = prop[':block/title'] || prop['block/title'];
                                         if (title) {
                                             return title;
@@ -456,7 +460,8 @@ class FilterManager {
 
                                     // Result structure: [{propertyIdent: value}, ...]
                                     // Note: Keys in result don't have ':' prefix
-                                    const sampleValue = sampleResult.data[0][propertyIdent];
+                                    const strippedIdent = propertyIdent.startsWith(':') ? propertyIdent.slice(1) : propertyIdent;
+                                    const sampleValue = sampleResult.data[0][propertyIdent] || sampleResult.data[0][strippedIdent];
                                     console.log('[PROP-INPUT] Sample value:', sampleValue);
                                     console.log('[PROP-INPUT] Value type:', typeof sampleValue);
 
@@ -468,20 +473,22 @@ class FilterManager {
                                     if (Array.isArray(sampleValue)) {
                                         cardinality = ':db.cardinality/many';
                                         if (sampleValue.length > 0 && typeof sampleValue[0] === 'object' &&
-                                            (sampleValue[0][':db/id'] || sampleValue[0]['db/id'])) {
+                                            (sampleValue[0][':db/id'] || sampleValue[0]['db/id'] || sampleValue[0]['id'])) {
                                             valueType = ':db.type/ref';
                                             // Check if any ref has journal-day (date-ref property)
                                             if (sampleValue[0]['block/journal-day'] !== undefined ||
-                                                sampleValue[0][':block/journal-day'] !== undefined) {
+                                                sampleValue[0][':block/journal-day'] !== undefined ||
+                                                sampleValue[0]['journal-day'] !== undefined) {
                                                 isJournalDate = true;
                                             }
                                         }
                                     } else if (typeof sampleValue === 'object' &&
-                                               (sampleValue[':db/id'] || sampleValue['db/id'])) {
+                                               (sampleValue[':db/id'] || sampleValue['db/id'] || sampleValue['id'])) {
                                         valueType = ':db.type/ref';
                                         // Check if ref has journal-day (date-ref property)
                                         if (sampleValue['block/journal-day'] !== undefined ||
-                                            sampleValue[':block/journal-day'] !== undefined) {
+                                            sampleValue[':block/journal-day'] !== undefined ||
+                                            sampleValue['journal-day'] !== undefined) {
                                             isJournalDate = true;
                                         }
                                     } else if (typeof sampleValue === 'boolean') {

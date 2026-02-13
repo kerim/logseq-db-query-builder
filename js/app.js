@@ -348,9 +348,9 @@ class App {
 
         console.log('Rendering item:', item);
 
-        const title = item['block/title'] || item['block/name'] || 'Untitled';
-        const uuid = item['block/uuid'];
-        const tags = item['block/tags'] || [];
+        const title = item['block/title'] || item['block/name'] || item['title'] || item['name'] || 'Untitled';
+        const uuid = item['block/uuid'] || item['uuid'];
+        const tags = item['block/tags'] || item['tags'] || [];
 
         const div = document.createElement('div');
         div.className = 'result-item';

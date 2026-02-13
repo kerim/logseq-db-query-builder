@@ -71,7 +71,7 @@ class LogseqAPI {
      */
     _resolveIdent(val) {
         if (typeof val === 'string') return val;
-        if (val && typeof val === 'object') return val['db/ident'] || val[':db/ident'] || val;
+        if (val && typeof val === 'object') return val['db/ident'] || val[':db/ident'] || val['ident'] || val;
         return val;
     }
 
@@ -176,9 +176,9 @@ class LogseqAPI {
             const result = await this.executeQuery(graphName, query);
 
             return result.data.map(item => ({
-                name: item['block/name'],
-                title: item['block/title'],
-                uuid: item['block/uuid']
+                name: item['block/name'] || item[':block/name'] || item['name'],
+                title: item['block/title'] || item[':block/title'] || item['title'],
+                uuid: item['block/uuid'] || item[':block/uuid'] || item['uuid']
             }));
         } catch (error) {
             console.error('Search failed:', error);
@@ -203,8 +203,8 @@ class LogseqAPI {
 
             const tagMap = new Map();
             result.data.forEach(item => {
-                const title = item['block/title'] || item[':block/title'];
-                const uuid = item['block/uuid'] || item[':block/uuid'];
+                const title = item['block/title'] || item[':block/title'] || item['title'];
+                const uuid = item['block/uuid'] || item[':block/uuid'] || item['uuid'];
 
                 if (title) {
                     if (!searchTerm || title.toLowerCase().includes(searchTerm.toLowerCase())) {
@@ -285,10 +285,10 @@ class LogseqAPI {
             if (result.data.length > 0) {
                 const schema = result.data[0];
                 return {
-                    name: schema['block/title'] || schema[':block/title'],
-                    ident: this._resolveIdent(schema['db/ident'] || schema[':db/ident']),
-                    valueType: this._resolveIdent(schema['db/valueType'] || schema[':db/valueType']),
-                    cardinality: this._resolveIdent(schema['db/cardinality'] || schema[':db/cardinality'])
+                    name: schema['block/title'] || schema[':block/title'] || schema['title'],
+                    ident: this._resolveIdent(schema['db/ident'] || schema[':db/ident'] || schema['ident']),
+                    valueType: this._resolveIdent(schema['db/valueType'] || schema[':db/valueType'] || schema['valueType']),
+                    cardinality: this._resolveIdent(schema['db/cardinality'] || schema[':db/cardinality'] || schema['cardinality'])
                 };
             }
             return null;
@@ -313,8 +313,8 @@ class LogseqAPI {
 
             const result = await this.executeQuery(graphName, query);
             return result.data.map(item => ({
-                title: item['block/title'] || item[':block/title'],
-                id: item['db/id'] || item[':db/id']
+                title: item['block/title'] || item[':block/title'] || item['title'],
+                id: item['db/id'] || item[':db/id'] || item['id']
             }));
         } catch (error) {
             console.error('Failed to get property values:', error);
@@ -341,7 +341,8 @@ class LogseqAPI {
             if (result.data.length > 0) {
                 const tagData = result.data[0];
                 const props = tagData['logseq.property.class/properties'] ||
-                              tagData[':logseq.property.class/properties'];
+                              tagData[':logseq.property.class/properties'] ||
+                              tagData['properties'];
                 console.log('[getTagProperties] Extracted props:', props);
                 return props || [];
             }
@@ -363,7 +364,7 @@ class LogseqAPI {
         const uuidsToResolve = new Set();
 
         blocks.forEach(block => {
-            const title = block['block/title'];
+            const title = block['block/title'] || block['title'];
             if (title) {
                 const matches = title.matchAll(uuidPattern);
                 for (const match of matches) {
@@ -386,8 +387,9 @@ class LogseqAPI {
 
                 if (result.data && result.data.length > 0) {
                     const block = result.data[0];
-                    if (block && block['block/title']) {
-                        uuidMap[uuid] = block['block/title'];
+                    const resolvedTitle = block && (block['block/title'] || block['title']);
+                    if (resolvedTitle) {
+                        uuidMap[uuid] = resolvedTitle;
                     }
                 }
             } catch (error) {
@@ -398,9 +400,9 @@ class LogseqAPI {
         console.log(`Resolved ${Object.keys(uuidMap).length} UUIDs`);
 
         return blocks.map(block => {
-            const title = block['block/title'];
-            if (title) {
-                let resolvedTitle = title;
+            const titleKey = block['block/title'] ? 'block/title' : (block['title'] ? 'title' : null);
+            if (titleKey) {
+                let resolvedTitle = block[titleKey];
                 for (const [uuid, resolvedName] of Object.entries(uuidMap)) {
                     const pattern = `[[${uuid}]]`;
                     const replacement = `[[${resolvedName}]]`;
@@ -409,7 +411,7 @@ class LogseqAPI {
 
                 return {
                     ...block,
-                    'block/title': resolvedTitle
+                    [titleKey]: resolvedTitle
                 };
             }
             return block;
