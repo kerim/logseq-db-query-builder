@@ -5,12 +5,14 @@
 
 class App {
     constructor() {
-        this.api = new LogseqAPI();
+        // Load token from localStorage
+        const savedToken = localStorage.getItem('logseqApiToken') || '';
+        this.api = new LogseqAPI(savedToken);
         this.filterManager = null;
         this.autocomplete = null;
-        
+
         this.state = {
-            graph: localStorage.getItem('lastGraph') || '',
+            graph: '',
             connected: false,
             rootGroup: null, // Tree structure with nested groups and filters
             results: [],
@@ -39,18 +41,14 @@ class App {
         // Set up event listeners
         this.setupEventListeners();
 
-        // Check server health
-        await this.checkConnection();
-
-        // Load graphs
-        await this.loadGraphs();
-
-        // Restore last selected graph
-        if (this.state.graph) {
-            const graphSelect = document.getElementById('graph-select');
-            graphSelect.value = this.state.graph;
-            this.onGraphSelect(this.state.graph);
+        // Populate token field if saved
+        const tokenInput = document.getElementById('api-token');
+        if (tokenInput && this.api.getToken()) {
+            tokenInput.value = this.api.getToken();
         }
+
+        // Check connection
+        await this.checkConnection();
 
         // Add initial empty filter
         this.filterManager.addFilter();
@@ -60,9 +58,21 @@ class App {
      * Set up event listeners
      */
     setupEventListeners() {
-        // Graph selection
-        document.getElementById('graph-select').addEventListener('change', (e) => {
-            this.onGraphSelect(e.target.value);
+        // Token save button
+        document.getElementById('save-token-btn').addEventListener('click', () => {
+            this.saveToken();
+        });
+
+        // Token input — save on Enter key
+        document.getElementById('api-token').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                this.saveToken();
+            }
+        });
+
+        // Token visibility toggle
+        document.getElementById('toggle-token-btn').addEventListener('click', () => {
+            this.toggleTokenVisibility();
         });
 
         // Add filter button
@@ -115,72 +125,90 @@ class App {
     }
 
     /**
-     * Check server connection
+     * Save token and re-check connection
+     */
+    async saveToken() {
+        const tokenInput = document.getElementById('api-token');
+        const token = tokenInput.value.trim();
+
+        localStorage.setItem('logseqApiToken', token);
+        this.api.setToken(token);
+
+        await this.checkConnection();
+    }
+
+    /**
+     * Toggle token input visibility
+     */
+    toggleTokenVisibility() {
+        const tokenInput = document.getElementById('api-token');
+        const toggleBtn = document.getElementById('toggle-token-btn');
+
+        if (tokenInput.type === 'password') {
+            tokenInput.type = 'text';
+            toggleBtn.textContent = 'Hide';
+        } else {
+            tokenInput.type = 'password';
+            toggleBtn.textContent = 'Show';
+        }
+    }
+
+    /**
+     * Check connection to Logseq API
      */
     async checkConnection() {
         try {
-            const healthy = await this.api.checkHealth();
-            this.updateConnectionStatus(healthy);
+            const health = await this.api.checkHealth();
+            this.updateConnectionStatus(health);
+
+            if (health.connected && health.graphName) {
+                this.state.graph = health.graphName;
+                this.updateGraphDisplay(health.graphName);
+            } else {
+                this.state.graph = '';
+                this.updateGraphDisplay(null);
+            }
         } catch (error) {
             console.error('Connection check failed:', error);
-            this.updateConnectionStatus(false);
+            this.updateConnectionStatus({ connected: false, graphName: null, error: 'connection_refused' });
+            this.state.graph = '';
+            this.updateGraphDisplay(null);
         }
     }
 
     /**
      * Update connection status UI
      */
-    updateConnectionStatus(connected) {
-        this.state.connected = connected;
+    updateConnectionStatus(health) {
+        this.state.connected = health.connected;
         const statusEl = document.getElementById('connection-status');
         const setupHelp = document.getElementById('setup-help');
 
-        if (connected) {
+        if (health.connected) {
             statusEl.classList.add('connected');
             statusEl.querySelector('.status-text').textContent = 'Connected';
-            // Hide setup help when connected
             if (setupHelp) setupHelp.classList.add('hidden');
         } else {
             statusEl.classList.remove('connected');
-            statusEl.querySelector('.status-text').textContent = 'Disconnected';
-            // Show setup help when disconnected
+
+            if (health.error === 'invalid_token') {
+                statusEl.querySelector('.status-text').textContent = 'Invalid token';
+            } else {
+                statusEl.querySelector('.status-text').textContent = 'Disconnected';
+            }
+
             if (setupHelp) setupHelp.classList.remove('hidden');
         }
     }
 
     /**
-     * Load available graphs
+     * Update graph name display
      */
-    async loadGraphs() {
-        try {
-            const graphs = await this.api.listGraphs();
-            const select = document.getElementById('graph-select');
-            
-            // Clear existing options except first
-            select.innerHTML = '<option value="">Select a graph...</option>';
-            
-            // Add graph options
-            graphs.forEach(graph => {
-                const option = document.createElement('option');
-                option.value = graph;
-                option.textContent = graph;
-                select.appendChild(option);
-            });
-        } catch (error) {
-            console.error('Failed to load graphs:', error);
-            this.showError('Failed to load graphs. Is the server running?');
+    updateGraphDisplay(graphName) {
+        const graphDisplay = document.getElementById('current-graph');
+        if (graphDisplay) {
+            graphDisplay.textContent = graphName || 'Not connected';
         }
-    }
-
-    /**
-     * Handle graph selection
-     */
-    onGraphSelect(graphName) {
-        this.state.graph = graphName;
-        localStorage.setItem('lastGraph', graphName);
-        
-        // Clear results when switching graphs
-        this.clearResults();
     }
 
     /**
@@ -193,7 +221,14 @@ class App {
         // Clear results when filters change to avoid showing stale results
         if (this.state.results.length > 0) {
             const container = document.getElementById('results-container');
-            container.innerHTML = '<div class="empty-state"><p>Filters changed - click Search to update results.</p></div>';
+            // Using textContent-based approach to update display
+            while (container.firstChild) container.removeChild(container.firstChild);
+            const div = document.createElement('div');
+            div.className = 'empty-state';
+            const p = document.createElement('p');
+            p.textContent = 'Filters changed - click Search to update results.';
+            div.appendChild(p);
+            container.appendChild(div);
             document.getElementById('result-count').textContent = '0 items found';
             this.state.results = [];
             this.state.resultCount = 0;
@@ -226,7 +261,7 @@ class App {
      */
     async executeSearch() {
         if (!this.state.graph) {
-            this.showError('Please select a graph first.');
+            this.showError('Not connected to a graph. Enter your API token and connect first.');
             return;
         }
 
@@ -272,58 +307,79 @@ class App {
     }
 
     /**
-     * Display search results
+     * Display search results using safe DOM methods
      */
     displayResults(results, totalCount) {
         const container = document.getElementById('results-container');
         const countEl = document.getElementById('result-count');
-        
+
         // Update count
         const limitedText = results.length < totalCount ? ` (showing ${results.length})` : '';
         countEl.textContent = `${totalCount} items found${limitedText}`;
-        
+
+        // Clear container safely
+        while (container.firstChild) container.removeChild(container.firstChild);
+
         if (results.length === 0) {
-            container.innerHTML = '<div class="empty-state"><p>No results found.</p></div>';
+            const div = document.createElement('div');
+            div.className = 'empty-state';
+            const p = document.createElement('p');
+            p.textContent = 'No results found.';
+            div.appendChild(p);
+            container.appendChild(div);
             return;
         }
 
-        // Render results
-        container.innerHTML = results.map(item => this.renderResultItem(item)).join('');
+        // Render results using DOM methods
+        results.forEach(item => {
+            const el = this.createResultElement(item);
+            if (el) container.appendChild(el);
+        });
     }
 
     /**
-     * Render a single result item
+     * Create a result item DOM element safely
      */
-    renderResultItem(item) {
-        // Handle null/undefined items
+    createResultElement(item) {
         if (!item) {
             console.warn('Null item in results:', item);
-            return '';
+            return null;
         }
-        
+
         console.log('Rendering item:', item);
-        
+
         const title = item['block/title'] || item['block/name'] || 'Untitled';
         const uuid = item['block/uuid'];
         const tags = item['block/tags'] || [];
-        
-        // Format tags
-        const tagsHtml = tags.length > 0 
-            ? tags.map(tag => {
-                // Tags are entity references, we need to show something meaningful
-                return `<span class="result-tag">#tag</span>`;
-              }).join(' ')
-            : '';
 
-        return `
-            <div class="result-item">
-                <div class="result-title">${this.escapeHtml(title)}</div>
-                <div class="result-meta">
-                    ${tagsHtml}
-                    ${uuid ? `<span style="color: var(--text-tertiary); font-size: 11px;">${uuid.substring(0, 8)}...</span>` : ''}
-                </div>
-            </div>
-        `;
+        const div = document.createElement('div');
+        div.className = 'result-item';
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'result-title';
+        titleDiv.textContent = title;
+        div.appendChild(titleDiv);
+
+        const metaDiv = document.createElement('div');
+        metaDiv.className = 'result-meta';
+
+        // Format tags
+        tags.forEach(() => {
+            const tagSpan = document.createElement('span');
+            tagSpan.className = 'result-tag';
+            tagSpan.textContent = '#tag';
+            metaDiv.appendChild(tagSpan);
+        });
+
+        if (uuid) {
+            const uuidSpan = document.createElement('span');
+            uuidSpan.style.cssText = 'color: var(--text-tertiary); font-size: 11px;';
+            uuidSpan.textContent = `${uuid.substring(0, 8)}...`;
+            metaDiv.appendChild(uuidSpan);
+        }
+
+        div.appendChild(metaDiv);
+        return div;
     }
 
     /**
@@ -333,7 +389,13 @@ class App {
         this.state.results = [];
         this.state.resultCount = 0;
         const container = document.getElementById('results-container');
-        container.innerHTML = '<div class="empty-state"><p>No results yet. Add filters and click Search.</p></div>';
+        while (container.firstChild) container.removeChild(container.firstChild);
+        const div = document.createElement('div');
+        div.className = 'empty-state';
+        const p = document.createElement('p');
+        p.textContent = 'No results yet. Add filters and click Search.';
+        div.appendChild(p);
+        container.appendChild(div);
         document.getElementById('result-count').textContent = '0 items found';
     }
 
@@ -350,7 +412,7 @@ class App {
      */
     async copyQuery() {
         const query = this.state.wrappedQuery || this.state.generatedQuery;
-        
+
         if (!query) {
             this.showError('No query to copy. Generate a query first.');
             return;
@@ -358,13 +420,13 @@ class App {
 
         try {
             await navigator.clipboard.writeText(query);
-            
+
             // Visual feedback
             const btn = document.getElementById('copy-query-btn');
             const originalText = btn.textContent;
             btn.textContent = 'Copied!';
             btn.style.background = 'var(--status-connected)';
-            
+
             setTimeout(() => {
                 btn.textContent = originalText;
                 btn.style.background = '';
@@ -381,7 +443,7 @@ class App {
     toggleTheme() {
         const body = document.body;
         const icon = document.querySelector('.theme-icon');
-        
+
         if (body.classList.contains('light-theme')) {
             body.classList.remove('light-theme');
             icon.textContent = '🌙';
@@ -399,7 +461,7 @@ class App {
     showLoading(show) {
         const loadingEl = document.getElementById('loading-state');
         const resultsEl = document.getElementById('results-container');
-        
+
         if (show) {
             loadingEl.style.display = 'block';
             resultsEl.style.opacity = '0.5';
@@ -418,7 +480,7 @@ class App {
         const errorEl = document.getElementById('error-state');
         errorEl.querySelector('.error-message').textContent = message;
         errorEl.style.display = 'block';
-        
+
         // Auto-hide after 5 seconds
         setTimeout(() => this.hideError(), 5000);
     }

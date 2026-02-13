@@ -5,6 +5,45 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-02-13
+
+### Fixed
+- Escape double quotes in Datalog string literals (searchPages, getTagProperties, getPropertySchema)
+- Handle entity-reference property schema values from built-in API (_resolveIdent helper)
+- Fix unreachable flattening branch in executeQuery() result processing
+
+## [0.4.0] - 2026-02-13
+
+### Changed
+- **BREAKING: Migrated to Logseq built-in HTTP API** — no external server needed
+  - Old: required `logseq-http-server` (Python wrapper around `@logseq/cli`) on `localhost:8765`
+  - New: connects directly to Logseq's built-in API at `http://127.0.0.1:12315/api`
+  - Setup is now: enable API in Logseq settings, create token, paste token, done
+- **API authentication**: All requests now use `Authorization: Bearer <token>` header
+- **Single-endpoint architecture**: All API calls go to `POST /api` with `{method, args}` JSON
+- **Auto-detected graph**: No graph dropdown — queries run against whatever graph is open in Logseq
+- **Response normalization**: `executeQuery()` flattens datascript results (`[[{entity}], ...]` → `[{entity}, ...]`) and strips `:` prefix from keys for consistent access
+- **Connection status**: Now distinguishes "API not enabled" vs "Invalid token" vs "Connected"
+- Replaced `innerHTML` result rendering with safe DOM methods (`createElement`/`textContent`)
+
+### Added
+- API token input with show/hide toggle and persistent storage (`localStorage`)
+- Current graph name display (auto-detected from API)
+- Setup help instructions for enabling the Logseq HTTP API
+
+### Removed
+- Dependency on `logseq-http-server` — no longer needed
+- Graph selection dropdown — graph is auto-detected from Logseq
+- `localStorage` key `lastGraph` — replaced by `logseqApiToken`
+
+### Technical
+- `LogseqAPI` constructor now accepts `token` parameter; `setToken()`/`getToken()` methods added
+- New `_callAPI(method, args)` private helper for all API calls
+- New `_normalizeKeys(obj)` recursively strips `:` prefix from response keys
+- `checkHealth()` now returns `{connected, graphName, error}` object
+- `searchPages()` reimplemented as datascript query (was `/search` endpoint)
+- `App.init()` loads token from localStorage; `saveToken()` persists and re-checks connection
+
 ## [0.3.1] - 2026-02-13
 
 ### Added
@@ -475,32 +514,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No NOT operator support
 - Limited text search operators (only "contains")
 
-## [Unreleased]
-
-### v0.1.0 - Property Type Awareness (PLANNED - Implementation Ready)
-Planning completed 2025-12-27. See `QUICKSTART_PROPERTY_TYPES.md` for implementation guide.
-
-**Planned Features:**
-- **Property name autocomplete** - Dropdown with validation against existing properties
-- **Property type detection** - Automatic detection of boolean, text, reference, date, number types
-- **Type-specific input UI** - Smart input controls based on property type:
-  - Checkbox properties: Radio buttons (checked/unchecked)
-  - Reference properties (single): Dropdown with actual values
-  - Reference properties (multi): Checkbox group
-  - Date properties: Date picker with operator dropdown (=, <, >, <=, >=)
-  - Number properties: Number input with operator dropdown
-  - Text properties: Text input (fallback)
-- **Tag-based property suggestions** - Show hint with associated properties when tag is selected
-
-**Implementation Plan:** 5 phases (API layer → autocomplete → type inputs → query generation → tag suggestions)
-**Full Details:** `/Users/niyaro/.claude/plans/cryptic-watching-mccarthy.md`
-
-### Planned for v0.3.0
-- More text search operators (starts-with, ends-with, regex)
-- Enhanced tag autocomplete with hierarchy
-- Result sorting options
-
-### Future Versions
-- Reverse query parsing (paste query → populate UI)
-- Advanced aggregation queries
-- Query validation and testing tools

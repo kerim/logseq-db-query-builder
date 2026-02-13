@@ -134,24 +134,94 @@ body {
 }
 
 /* ===========================
-   Graph Selection
+   Connection / Token Section
    =========================== */
 .graph-section {
     margin-bottom: var(--spacing-xl);
 }
 
-.graph-selector {
+.token-row {
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
     padding: var(--spacing-md);
     background: var(--bg-secondary);
     border-radius: var(--radius-md);
+    flex-wrap: wrap;
 }
 
-.graph-selector label {
+.token-row label {
     font-weight: 500;
     color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.token-input-group {
+    display: flex;
+    flex: 1;
+    gap: var(--spacing-sm);
+    min-width: 200px;
+}
+
+.token-input {
+    flex: 1;
+    max-width: 400px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: var(--font-size-base);
+    font-family: var(--font-mono);
+}
+
+.token-input:focus {
+    outline: none;
+    border-color: var(--border-focus);
+}
+
+.token-input::placeholder {
+    font-family: var(--font-sans);
+    color: var(--text-tertiary);
+}
+
+.btn-token-toggle {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-sans);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-token-toggle:hover {
+    background: var(--bg-hover);
+}
+
+.btn-token-save {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    white-space: nowrap;
+}
+
+.graph-display {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin-top: var(--spacing-sm);
+}
+
+.graph-display label {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.graph-name {
+    color: var(--text-primary);
+    font-weight: 500;
 }
 
 .select-input {

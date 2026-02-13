@@ -2,7 +2,7 @@
 
 A visual query builder for [Logseq](https://logseq.com/) database graphs. Build complex Datalog queries using a macOS Finder-style interface with nested filter groups, see live results, and copy the generated query to use in Logseq.
 
-**[Try it online](https://kerim.github.io/logseq-db-query-builder/)** (requires local server - see Prerequisites)
+**[Try it online](https://kerim.github.io/logseq-db-query-builder/)** (requires Logseq API enabled - see Prerequisites)
 
 ## Features
 
@@ -13,33 +13,25 @@ A visual query builder for [Logseq](https://logseq.com/) database graphs. Build 
 - **Auto-complete** - Suggestions for tags, pages, and properties
 - **Copy-Paste Ready** - Generated queries ready to use in Logseq
 - **Dark/Light Theme** - Match your Logseq theme preference
+- **No extra server needed** - Connects directly to Logseq's built-in HTTP API
 
 ## Prerequisites
 
-This tool requires the **Logseq HTTP Server** to be running locally:
+This tool connects to **Logseq's built-in HTTP API** (no extra server needed):
 
-1. **Clone and start the server:**
-   ```bash
-   git clone https://github.com/kerim/logseq-http-server.git
-   cd logseq-http-server
-   python3 logseq_server.py
-   ```
-   Server runs on `http://localhost:8765`
-
-2. **Logseq DB Graph** - This tool works with database graphs only (not markdown/file-based graphs)
-
-3. **[Logseq CLI](https://www.npmjs.com/package/@logseq/cli)** - The server uses the `@logseq/cli` tool. Install with:
-   ```bash
-   npm i @logseq/cli
-   ```
+1. **Enable Developer Mode:** Logseq → Settings → Advanced → enable "Developer mode"
+2. **Restart Logseq**
+3. **Enable HTTP API:** Settings → API Server → enable "HTTP APIs server"
+4. **Create a token:** Click "Authorization tokens" → create a token
+5. **Logseq DB Graph** - This tool works with database graphs only (not markdown/file-based graphs)
 
 ## Quick Start
 
 ### Option 1: Use Online (Recommended)
 
-1. Start the HTTP server locally (see Prerequisites)
+1. Enable the Logseq HTTP API (see Prerequisites)
 2. Open **[https://kerim.github.io/logseq-db-query-builder/](https://kerim.github.io/logseq-db-query-builder/)**
-3. Select your graph from the dropdown
+3. Paste your API token and click **Connect**
 4. Start building queries!
 
 ### Option 2: Run Locally
@@ -51,13 +43,13 @@ This tool requires the **Logseq HTTP Server** to be running locally:
 
 2. Open `index.html` in your browser (or use a local server)
 
-3. Make sure the HTTP server is running on `localhost:8765`
+3. Enable the Logseq HTTP API and paste your token
 
 ## How to Use
 
 ### Basic Filtering
 
-1. **Select your graph** from the dropdown
+1. **Paste your API token** and click Connect
 2. **Click "+ Filter"** to add a filter
 3. **Choose filter type** (tags, page, property, etc.)
 4. **Set the value** and click **Search**
@@ -123,7 +115,7 @@ logseq-db-query-builder/
 ├── styles/
 │   └── main.css        - Logseq-inspired styling
 └── js/
-    ├── api.js          - HTTP server communication
+    ├── api.js          - Logseq built-in API communication
     ├── queryGenerator.js - Datalog query generation
     ├── filters.js      - Filter UI and tree structure
     ├── autocomplete.js - Auto-complete component
@@ -132,35 +124,37 @@ logseq-db-query-builder/
 
 ## Related Projects
 
-- **[logseq-http-server](https://github.com/kerim/logseq-http-server)** - Required HTTP server for this tool
 - **[Logseq](https://logseq.com/)** - The knowledge management app
-- **[@logseq/cli](https://www.npmjs.com/package/@logseq/cli)** - Logseq command-line interface
 
 ## Troubleshooting
 
 ### "Disconnected" status (most common)
 
-**1. HTTP server not running**
-- Start the server: `python3 logseq_server.py`
-- Verify it's running: visit `http://localhost:8765/health` in your browser
+**1. Logseq API not enabled**
+- Open Logseq → Settings → Advanced → enable "Developer mode"
+- Restart Logseq
+- Settings → API Server → enable "HTTP APIs server"
 
-**2. Ad blocker blocking localhost requests**
+**2. Invalid token**
+- Go to Settings → API Server → "Authorization tokens"
+- Create a new token or copy an existing one
+- Paste it in the token field and click Connect
+
+**3. Ad blocker blocking localhost requests**
 - **Brave Browser:** Click the Shields icon → disable for this site
 - **uBlock Origin:** Click icon → click the power button to disable for this site
-- **Other ad blockers:** Whitelist `localhost:8765` or disable temporarily
+- **Other ad blockers:** Whitelist `127.0.0.1:12315` or disable temporarily
 
 This is especially common when using the [online version](https://kerim.github.io/logseq-db-query-builder/) since ad blockers may block requests from external sites to localhost.
 
-### "No graphs listed"
-- **Problem:** Server can't find your DB graphs
-- **Solution:** Run `logseq list` in terminal to verify graphs are accessible
-
 ### "Query execution failed"
 - **Problem:** Invalid query or graph access issue
-- **Solution:** Try a simpler filter first, check server logs
+- **Solution:** Try a simpler filter first, check browser console for details
 
 ## Version History
 
+- **v0.4.1** - Fix quote escaping, entity-reference schema handling, result flattening
+- **v0.4.0** - Migrate to Logseq built-in API (no extra server needed)
 - **v0.3.1** - Journal-date relative filtering, autocomplete positioning fix
 - **v0.2.0** - Nested filter groups with AND/OR/NOT logic
 - **v0.1.x** - Property type awareness, auto-complete

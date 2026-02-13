@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logseq DB Query Builder v0.3.1</title>
+    <title>Logseq DB Query Builder v0.4.1</title>
     <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
@@ -12,7 +12,7 @@
         <header class="header">
             <div class="header-content">
                 <h1>Logseq DB Query Builder</h1>
-                <span class="version">v0.3.1</span>
+                <span class="version">v0.4.1</span>
             </div>
             <div class="header-controls">
                 <a href="https://github.com/kerim/logseq-db-query-builder" target="_blank" class="btn-icon" title="View on GitHub">
@@ -26,26 +26,37 @@
             </div>
         </header>
 
-        <!-- Graph Selection -->
+        <!-- Connection -->
         <section class="graph-section">
-            <div class="graph-selector">
-                <label for="graph-select">Graph:</label>
-                <select id="graph-select" class="select-input">
-                    <option value="">Select a graph...</option>
-                </select>
+            <div class="token-row">
+                <label for="api-token">API Token:</label>
+                <div class="token-input-group">
+                    <input type="password" id="api-token" class="token-input" placeholder="Paste your Logseq API token...">
+                    <button id="toggle-token-btn" class="btn-token-toggle">Show</button>
+                    <button id="save-token-btn" class="btn-primary btn-token-save">Connect</button>
+                </div>
                 <span id="connection-status" class="status-indicator">
                     <span class="status-dot"></span>
                     <span class="status-text">Not connected</span>
                 </span>
             </div>
 
+            <div class="graph-display">
+                <label>Graph:</label>
+                <span id="current-graph" class="graph-name">Not connected</span>
+            </div>
+
             <!-- Setup Help (shown when disconnected) -->
             <div id="setup-help" class="setup-help hidden">
-                <p><strong>Not connected?</strong> This tool requires a local server:</p>
+                <p><strong>Not connected?</strong> Enable the Logseq HTTP API:</p>
                 <ol>
-                    <li><strong>Install & run <a href="https://github.com/kerim/logseq-http-server" target="_blank">logseq-http-server</a></strong> on your machine</li>
-                    <li><strong>Disable your ad blocker</strong> for this site (ad blockers block localhost requests)</li>
+                    <li>Open Logseq &rarr; <strong>Settings</strong> &rarr; <strong>Advanced</strong> &rarr; enable <strong>"Developer mode"</strong></li>
+                    <li><strong>Restart Logseq</strong></li>
+                    <li>Go to <strong>Settings</strong> &rarr; <strong>API Server</strong> &rarr; enable <strong>"HTTP APIs server"</strong></li>
+                    <li>Click <strong>"Authorization tokens"</strong> &rarr; create a token</li>
+                    <li>Paste the token above and click <strong>Connect</strong></li>
                 </ol>
+                <p><strong>Note:</strong> Ad blockers may block requests to localhost. If connection fails, disable your ad blocker for this site.</p>
                 <p><a href="https://github.com/kerim/logseq-db-query-builder#troubleshooting" target="_blank">Full setup instructions →</a></p>
             </div>
         </section>

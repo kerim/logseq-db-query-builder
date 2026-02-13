@@ -8,7 +8,7 @@ Logseq DB Query Builder — a vanilla JS web app that generates Datalog queries 
 
 ```
 index.html loads (in order):
-  api.js        → LogseqAPI class (HTTP client for logseq-http-server)
+  api.js        → LogseqAPI class (HTTP client for Logseq built-in API)
   queryGenerator.js → QueryGenerator class (filter tree → Datalog)
   filters.js    → FilterManager class (UI + filter tree state) + FILTER_TYPES config
   autocomplete.js → Autocomplete class (dropdown suggestions)
@@ -30,8 +30,8 @@ User interacts with filter UI
 
 User clicks Search
   → App sends raw query to LogseqAPI.executeQuery()
-  → API POSTs to http://localhost:8765/query
-  → Results come back, UUIDs get resolved, results displayed
+  → API POSTs to http://127.0.0.1:12315/api with {method: 'logseq.DB.datascriptQuery', args: [query]}
+  → Results come back, flattened, keys normalized, UUIDs resolved, results displayed
 ```
 
 ### Filter Tree Structure
@@ -99,16 +99,19 @@ When user selects a property in the filter UI:
 
 ### API Layer (api.js)
 
-Connects to **`http://localhost:8765`** (logseq-http-server). Key endpoints:
+Connects to **`http://127.0.0.1:12315/api`** (Logseq built-in HTTP API). All calls go to `POST /api` with `{method, args}` JSON and `Authorization: Bearer <token>` header.
 
-| Method | Endpoint | Purpose |
-|--------|----------|---------|
-| GET | `/health` | Connection check |
-| GET | `/list` | List available graphs |
-| POST | `/query` | Execute Datalog query (body: `{graph, query}`) |
-| GET | `/search?q=&graph=` | Page search |
+| API Method | Purpose |
+|------------|---------|
+| `logseq.App.getCurrentGraph` | Health check + get current graph name |
+| `logseq.DB.datascriptQuery` | Execute Datalog query against current graph |
 
-Notable methods beyond basic CRUD:
+Key methods:
+- `_callAPI(method, args)` — private helper for all API calls; handles auth, errors
+- `_normalizeKeys(obj)` — strips `:` prefix from response keys for consistent access
+- `checkHealth()` — returns `{connected, graphName, error}` distinguishing connection vs token issues
+- `executeQuery()` — flattens datascript results (`[[{entity}], ...]` → `[{entity}, ...]`)
+- `searchPages()` — reimplemented as datascript query (no `/search` endpoint)
 - `getPropertySchema()` — pulls full entity with `[*]` to get `:db/valueType` and `:db/cardinality`
 - `getTagProperties()` — nested pull to get `:logseq.property.class/properties` for a tag
 - `resolveUUIDs()` — post-processes results to replace `[[uuid]]` refs with `[[title]]`
