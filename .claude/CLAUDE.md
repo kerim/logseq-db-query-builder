@@ -1,329 +1,187 @@
-# Project-Specific Instructions for Logseq DB Query Builder
+# CLAUDE.md
 
-## Version Management Protocol
+Logseq DB Query Builder — a vanilla JS web app that generates Datalog queries for Logseq database graphs. No build process, no frameworks.
 
-**CRITICAL: ALWAYS increment version numbers with EVERY code change**
+## Architecture
 
-### Current Version Tracking
-- **Current Version**: Check `index.html` line 6 for the authoritative version number
-- **Never reuse version numbers** - each build must have a unique version
-- **Use semantic versioning**: `MAJOR.MINOR.PATCH`
-  - `MAJOR`: Breaking changes or major feature releases (e.g., 1.0.0, 2.0.0)
-  - `MINOR`: New features, non-breaking changes (e.g., 0.1.0, 0.2.0)
-  - `PATCH`: Bug fixes, small improvements (e.g., 0.0.2, 0.0.3)
+### Module Dependency Graph
 
-### Version Update Locations
-When incrementing version, update in these files:
-1. **`index.html`** - Line 6: `<title>Logseq DB Query Builder v0.0.X</title>`
-2. **`README.md`** - Near top: version badge or header
-3. **`docs/PROJECT_STATUS.md`** - Current version section at top
-
-### Pre-Change Checklist
-
-**Before making ANY code changes, complete this checklist:**
-
-- [ ] Check current version number in `index.html` line 6
-- [ ] Determine new version number (increment PATCH for small changes, MINOR for features)
-- [ ] Verify git status is clean or has only intended changes
-- [ ] Create feature branch if needed (optional for small patches)
-- [ ] **TEST QUERY SYNTAX FIRST**: Before implementing, test the query pattern using `logseq query` CLI to verify it works
-  - Never assume query syntax - always verify with actual Logseq CLI first
-  - Example: Always use dangerouslyDisableSandbox: true for logseq commands
-    ```bash
-    Bash({
-      command: 'logseq query -g "GRAPH NAME" -- \'[:find (pull ?b [*]) :where ...]\'',
-      dangerouslyDisableSandbox: true
-    })
-    ```
-  - Use `logseq list` to get available graph names
-  - Prevents shipping broken implementations based on incorrect assumptions
-
-### CRITICAL: Fix Workflow Tool Issues Directly
-
-**NEVER work around broken tools - fix them first:**
-
-- **CLI not working?** Debug and fix the CLI command syntax, don't skip testing
-- **GitHub access issues?** Fix authentication, don't avoid using git
-- **Database connection failing?** Fix the connection, don't make assumptions
-- **Query syntax unclear?** Test until you understand it, don't guess
-
-**Examples of WRONG behavior:**
-- ❌ "The CLI is broken, so I'll just assume the query works"
-- ❌ "I can't test this, so let me commit and see what happens"
-- ❌ "The tool isn't working, so I'll use a workaround"
-
-**Examples of CORRECT behavior:**
-- ✅ "The CLI command failed, let me read the help and fix the syntax"
-- ✅ "I'm getting an error, let me debug it before proceeding"
-- ✅ "The test isn't working, let me fix the test setup first"
-
-**Philosophy: Tools exist to prevent mistakes. If a tool is broken, fix the tool. Don't bypass it.**
-
-### Post-Change Checklist
-
-**After completing ANY code changes, complete this checklist IN ORDER:**
-
-1. **Update version files**:
-   - [ ] Update version in `index.html` (line 6 and line 15)
-   - [ ] Update version in `README.md` (if version shown)
-   - [ ] Update version in `docs/PROJECT_STATUS.md`
-   - [ ] Update `CHANGELOG.md` with changes
-
-2. **Commit immediately** (BEFORE testing):
-   - [ ] Run git status to verify changed files
-   - [ ] Stage changes: `git add .`
-   - [ ] Commit changes with descriptive message
-   - [ ] Tag commit with version number
-   - [ ] Verify commit and tag were created
-
-3. **Test AFTER committing**:
-   - [ ] Test the generated query using the query builder UI or manual CLI test
-   - [ ] Confirm the query syntax is correct
-   - [ ] Verify results are as expected
-   - [ ] If tests fail, fix and increment version again for next commit
-
-**Why commit before testing:**
-- Ensures every change has a unique version number
-- Creates rollback points for every iteration
-- User can always test specific versions
-- Git history shows progression of fixes
-
-### Git Workflow
-
-#### 1. Before Starting Work
-```bash
-# Check current status
-git status
-
-# Ensure on main branch
-git branch
-
-# Pull latest changes if working with others
-git pull origin main
+```
+index.html loads (in order):
+  api.js        → LogseqAPI class (HTTP client for logseq-http-server)
+  queryGenerator.js → QueryGenerator class (filter tree → Datalog)
+  filters.js    → FilterManager class (UI + filter tree state) + FILTER_TYPES config
+  autocomplete.js → Autocomplete class (dropdown suggestions)
+  app.js        → App class (coordinator, wires everything together)
 ```
 
-#### 2. After Completing Changes
-```bash
-# Check what changed
-git status
-git diff
+All classes are exposed as `window.*` globals. `App` is instantiated on DOMContentLoaded as `window.app`.
 
-# Stage changes
-git add .
+### Data Flow
 
-# Commit with descriptive message
-git commit -m "Add feature X - v0.0.X
+```
+User interacts with filter UI
+  → FilterManager updates its rootGroup tree (in-memory)
+  → FilterManager calls onChange(rootGroup)
+  → App.onFiltersChange() stores rootGroup in state
+  → App.generateQuery() passes rootGroup to QueryGenerator.generate()
+  → QueryGenerator recursively walks the tree, produces raw + wrapped Datalog strings
+  → App displays wrapped query in UI
 
-- Specific change 1
-- Specific change 2
-- Updated version to 0.0.X"
-
-# Tag the version
-git tag v0.0.X
-
-# Verify commit and tag
-git log --oneline -3
-git tag -l
+User clicks Search
+  → App sends raw query to LogseqAPI.executeQuery()
+  → API POSTs to http://localhost:8765/query
+  → Results come back, UUIDs get resolved, results displayed
 ```
 
-#### 3. Pushing to Remote (when ready)
-```bash
-# Push commits
-git push origin main
+### Filter Tree Structure
 
-# Push tags
-git push origin --tags
+The core data model is a **recursive tree of groups and filters**:
+
+```
+rootGroup (type: 'group', matchMode: 'all'|'any'|'none')
+├── filter (type: 'tags', value: 'Book')
+├── filter (type: 'property', propertyName: 'status', propertySchema: {...}, value: 'Done')
+└── group (type: 'group', matchMode: 'any')    ← nested group
+    ├── filter (type: 'full-text', value: 'foo')
+    └── filter (type: 'task', value: ['Todo', 'Doing'])
 ```
 
-### Rollback Procedure
+- Groups have `matchMode`: `'all'` (AND), `'any'` (OR), `'none'` (NOT)
+- Filters have `type` matching a key in `FILTER_TYPES`
+- Filter objects carry all their state: `value`, `operator`, `propertyName`, `propertySchema`, `startDate`, `endDate`, etc.
 
-If changes need to be reverted:
+### Recursive Query Generation (queryGenerator.js)
+
+`QueryGenerator.generate(rootGroup)` walks the tree:
+
+1. **Flatten** all filters to validate and determine entity type (`?p` for pages, `?b` for blocks)
+2. **Recursively** call `buildGroupClause(group, entityVar)`:
+   - For each child: if group → recurse; if filter → `buildWhereClause(filter, entityVar)`
+   - Combine child clauses based on `matchMode`:
+     - `'all'` → concatenate clauses (AND = just place them together in `:where`)
+     - `'any'` → wrap in `(or-join [entityVar] (and ...) (and ...))`
+     - `'none'` → bind entity var, then `(not-join [entityVar] ...combined clauses...)`
+3. **Assemble** `[:find (pull ?b [*]) :where ...clauses...]`
+4. **Return** both `raw` (for API) and `wrapped` (for Logseq's `{:query [...]}` format)
+
+### Property Type Handling Pipeline
+
+When user selects a property in the filter UI:
+
+1. **Autocomplete** (`autocomplete.js`) fetches property names from graph, stores `ident` (e.g., `:user.property/email`)
+2. **Schema inference** (`filters.js:renderFilterInputs`) queries a sample value to infer `valueType` and `cardinality`
+3. **Type-specific UI** renders based on inferred type:
+   - `:db.type/boolean` → radio buttons (checked/unchecked)
+   - `:db.type/ref` → dropdown (single cardinality) or checkboxes (many cardinality), populated from `getPropertyValues()`
+   - `:db.type/number` → number input + comparison operator
+   - `:db.type/instant` → date picker + comparison operator
+   - Default → text input with is/contains operators
+4. **Query generation** (`queryGenerator.js:buildPropertyClause`) dispatches on `propertySchema.valueType`:
+   - Boolean: `[?b :prop true/false]`
+   - Ref (single): `[?b :prop ?val] [?val :block/title "X"]`
+   - Ref (multi): `(or-join [?b] (and [?b :prop ?ref] [?ref :block/title "X"]) ...)`
+   - Number/Date: `[?b :prop ?num] [(op ?num val)]`
+   - Fallback (no schema): tries both `:user.property/` and `:logseq.property/` namespaces via `or-join`
+
+### Filter Types (FILTER_TYPES in filters.js)
+
+| Type | Entity | Key Behavior |
+|------|--------|-------------|
+| `page` | `?p` | Name matching: is/contains/starts-with/ends-with |
+| `tags` | `?b` or `?p` | Tag title match, optional `extends` support |
+| `full-text` | `?b` | Regex-based case-insensitive search on `:block/title` |
+| `property` | `?b` or `?p` | Type-aware (see pipeline above) |
+| `page-reference` | `?b` | Matches `:block/refs` → `:block/name` |
+| `task` | `?b` | Status property match with optional extensions/all-status-properties |
+| `priority` | `?b` | Priority property match (Urgent/High/Medium/Low) |
+| `between` | `?b` | Date range on created-at/updated-at/journal-day using timestamps |
+
+### API Layer (api.js)
+
+Connects to **`http://localhost:8765`** (logseq-http-server). Key endpoints:
+
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| GET | `/health` | Connection check |
+| GET | `/list` | List available graphs |
+| POST | `/query` | Execute Datalog query (body: `{graph, query}`) |
+| GET | `/search?q=&graph=` | Page search |
+
+Notable methods beyond basic CRUD:
+- `getPropertySchema()` — pulls full entity with `[*]` to get `:db/valueType` and `:db/cardinality`
+- `getTagProperties()` — nested pull to get `:logseq.property.class/properties` for a tag
+- `resolveUUIDs()` — post-processes results to replace `[[uuid]]` refs with `[[title]]`
+
+## Key Conventions
+
+### Version Management
+
+- **Current version**: check `index.html` line 6 (authoritative source)
+- **Increment with every change**: PATCH for fixes, MINOR for features
+- **Update in**: `index.html` (title + header), `README.md`, `docs/PROJECT_STATUS.md`, `CHANGELOG.md`
+- **Tag every commit**: `git tag vX.Y.Z`
+
+### Test Query Syntax Before Implementing
+
+Always verify Datalog patterns with the Logseq CLI before writing code. All `logseq` CLI commands require `dangerouslyDisableSandbox: true` because they read from `~/Library/Application Support/Logseq/`.
 
 ```bash
-# View recent commits
-git log --oneline -5
-
-# Revert to specific version tag
-git checkout v0.0.X
-
-# Or create new branch from old version
-git checkout -b rollback-to-v0.0.X v0.0.X
-
-# Or reset to previous commit (use with caution)
-git reset --hard v0.0.X
+logseq list                    # see available graphs
+logseq query -g "GRAPH" -- '[:find (pull ?b [*]) :where ...]'
 ```
 
-### Example Version Progression
+The CLI works whether or not the Logseq desktop app is running. If you get "unable to open database file" errors, debug the actual issue — don't assume it's an app lock.
 
-- v0.0.1 - Initial release (completed)
-- v0.0.2 - Add text search operators (contains/equals)
-- v0.0.3 - Fix bug in autocomplete
-- v0.1.0 - Add property type awareness (new feature)
-- v0.1.1 - Fix date range query bug
-- v0.2.0 - Add boolean logic (AND/OR/NOT)
+### Fix Tools, Don't Work Around Them
 
-### Commit Message Format
-
-Use clear, descriptive commit messages:
-
-```
-[Short summary] - v0.0.X
-
-- Detailed change 1
-- Detailed change 2
-- Why the change was made (if not obvious)
-- Updated version to 0.0.X
-```
-
-Examples:
-```
-Add text search operators - v0.0.2
-
-- Add contains/equals dropdown to full-text filter
-- Update query generator for case-insensitive matching
-- Both operators use lower-case comparison
-- Updated version to 0.0.2
-```
-
-## Development Workflow
-
-### CRITICAL: Test Query Syntax Before Implementation
-
-**ALWAYS test Datalog query patterns with the Logseq CLI BEFORE writing code:**
-
-```bash
-# Use logseq list to see available graphs
-logseq list
-
-# Test query directly
-logseq query -g "GRAPH NAME" -- '[:find (pull ?b [*]) :where [?b :block/title ?title] [(clojure.string/lower-case ?title) ?lower]]'
-
-# Verify results are correct before implementing in code
-```
-
-**Why this is critical:**
-- Query syntax may not work as assumed
-- Clojure/Datalog has specific semantics that differ from other languages
-- Testing first prevents shipping broken implementations (like v0.0.2)
-- Saves time by catching issues before writing code
-
-**Important Notes:**
-- The Logseq CLI can access graphs whether or not the Logseq desktop app is running
-- Database lock issues are NOT caused by the app being open
-- If you get "unable to open database file" errors, debug the actual issue - don't assume it's because the app is running
-
-### Logseq CLI Sandbox Requirements
-
-**CRITICAL: All logseq CLI commands require sandbox to be disabled**
-
-The logseq CLI needs read access to `~/Library/Application Support/Logseq/` to access database files. This location is blocked by Claude Code's sandbox.
-
-**Required pattern for all logseq CLI commands:**
-```bash
-Bash({
-  command: 'logseq query -g "GRAPH NAME" -- \'[:find (pull ?b [*]) :where ...]\'',
-  description: "Test query with Logseq CLI",
-  dangerouslyDisableSandbox: true  // Required for database access
-})
-```
-
-**Why this is safe:**
-- logseq CLI is a read-only tool for querying local graphs
-- No network access required
-- No destructive operations
-- Similar to using dangerouslyDisableSandbox for npm/pnpm install
-
-### Testing Before Commit
-
-1. **Manual Testing Checklist**:
-   - [ ] **Test query with CLI first** - Verify syntax works with real Logseq CLI (requires dangerouslyDisableSandbox: true)
-   - [ ] Open `index.html` in browser
-   - [ ] Test new feature with real graph data
-   - [ ] Verify query generation is correct
-   - [ ] Check browser console for errors
-   - [ ] Test edge cases (empty input, special characters)
-   - [ ] Verify theme toggle still works
-   - [ ] Check existing features still work
-   - [ ] Compare generated query against working CLI version
-
-2. **Only commit after verification**:
-   - Do NOT mark changes as complete until implementation is verified
-   - Wait for user confirmation that feature works if they are testing
-   - Fix any issues found during testing
-   - Only then proceed with version increment and commit
-   - Never commit broken code based on assumptions
+If the CLI, git, or any workflow tool fails, debug and fix it. Never assume a query works without testing. Never commit untested code based on assumptions.
 
 ### File Organization
 
-This project follows clean separation of concerns:
 ```
 logseq-db-query-builder/
-├── .claude/           # Project-specific Claude instructions (this file)
-├── docs/              # Documentation, planning docs (git-ignored)
+├── .claude/           # Claude instructions
+├── docs/              # Documentation (git-ignored)
 ├── tests/             # Test scripts (git-ignored)
-├── js/                # Source code
-├── styles/            # CSS files
-├── index.html         # Main HTML file
+├── js/                # Source code (api.js, queryGenerator.js, filters.js, autocomplete.js, app.js)
+├── styles/            # CSS (main.css)
+├── index.html         # Entry point
 ├── README.md
 └── CHANGELOG.md
 ```
 
-**Rules**:
-- Source code only in `js/` and `styles/`
-- Documentation only in `docs/`
-- Test files only in `tests/`
-- Never mix these concerns
-
-## Project Context
-
-### Technology Stack
-- Vanilla JavaScript (ES6+, no frameworks)
-- No build process or dependencies
-- Direct browser execution
-- Logseq HTTP Server API integration
-
-### Key Files
-- **`js/app.js`** - Main application logic, initialization
-- **`js/filters.js`** - Filter UI management, FILTER_TYPES config
-- **`js/queryGenerator.js`** - Datalog query generation
-- **`js/api.js`** - HTTP API client for Logseq server
-- **`js/autocomplete.js`** - Autocomplete functionality
-- **`styles/main.css`** - All styles
-
-### API Integration
-- Connects to local Logseq HTTP server (default: http://localhost:12345)
-- Uses Logseq CLI datalog query endpoint
-- Requires `logseq-http-server` running separately
+Source in `js/` and `styles/` only. Docs in `docs/`. Tests in `tests/`.
 
 ## Common Tasks
 
 ### Adding a New Filter Type
 
-1. Add to `FILTER_TYPES` in `js/filters.js`
-2. Create `build[TypeName]Clause()` method in `js/queryGenerator.js`
-3. Add to `buildWhereClause()` switch statement
-4. Update `isValidFilter()` if needed
-5. Test with real data
-6. Update version, changelog, commit
+1. Add entry to `FILTER_TYPES` in `js/filters.js` (defines label, operators, input types)
+2. Add `renderFilterInputs` case if custom UI needed (in `js/filters.js`)
+3. Create `build[TypeName]Clause(filter, entityVar)` in `js/queryGenerator.js`
+4. Add case to `buildWhereClause()` switch
+5. Update `isValidFilter()` if validation logic differs
+6. Update `determineEntityType()` if the filter is page-only or block-only
+7. Test with CLI, then in browser
 
 ### Modifying Query Generation
 
-1. Edit relevant `build*Clause()` method in `js/queryGenerator.js`
-2. Test generated query syntax
-3. Verify results from API
-4. Update version, changelog, commit
+1. Edit the relevant `build*Clause()` method in `js/queryGenerator.js`
+2. Test the generated Datalog with `logseq query` CLI first
+3. Verify in browser
+4. Update version, commit, tag
 
 ### UI Changes
 
-1. Edit `js/filters.js` for filter UI
-2. Edit `styles/main.css` for styling
-3. Test in both light and dark themes
-4. Update version, changelog, commit
+1. Filter UI → `js/filters.js`
+2. Styles → `styles/main.css` (test both light and dark themes)
+3. Layout → `index.html`
 
-## Notes
+## Technical Notes
 
-- Always test against a real Logseq graph
-- Check browser console for errors
-- Queries are case-insensitive by default (use `clojure.string/lower-case`)
-- Property namespaces: try both `:user.property/` and `:logseq.property/`
-- Entity refs in results need manual resolution (future enhancement)
+- Queries are case-insensitive: full-text uses `re-pattern "(?i)..."`, page uses `:block/name` (already lowercase)
+- Property namespaces: user properties are `:user.property/name-UUID`, logseq built-ins are `:logseq.property/name`
+- Entity refs in query results appear as `[[uuid]]` — `resolveUUIDs()` replaces them with titles
+- The `extends` pattern queries `:logseq.property.class/extends` for tag inheritance
+- Task filter has three scoping modes: direct Task tag only, include extensions, include all entities with status property

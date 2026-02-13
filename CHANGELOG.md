@@ -5,6 +5,32 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-02-13
+
+### Added
+- **Journal-date relative date filtering** for date-reference properties (e.g., deadline, scheduled)
+  - Auto-detects properties that reference journal pages via `:block/journal-day`
+  - Mode toggle: "Relative date" vs "Select values"
+  - Presets: After today, Before today, Today (exact), Last N days, Next N days, Custom range
+  - Generates `:block/journal-day` comparison clauses with computed YYYYMMDD integers
+  - Wrapped query uses `:in $ ?today` / `:inputs [:today]` for Logseq's dynamic `:today` variable
+
+### Fixed
+- **Autocomplete dropdown positioning**: dropdown now appears directly below the input field instead of at the top of the screen
+  - Changed from `position: absolute` to `position: fixed` to match `getBoundingClientRect()` viewport-relative coordinates
+
+### Changed
+- Rewrote `.claude/CLAUDE.md` project instructions for conciseness and clarity
+- Version bumped from v0.2.2 to v0.3.1
+
+### Technical
+- Added `isJournalDate` flag to property schema inference (checks for `:block/journal-day` in pulled refs)
+- New `renderJournalDateInput()`, `renderRelativeDateControls()`, `renderReferenceInputInto()` methods in FilterManager
+- New `buildJournalDateClause()`, `computeYYYYMMDD()`, `hasRelativeDateFilter()` methods in QueryGenerator
+- Added `varCounter` for unique variable names in journal-date clauses
+- Wrapped query re-indents where clauses to 3-space indent for consistent formatting
+- Added CSS styles for `.journal-date-input`, `.relative-date-controls`, `.relative-date-dynamic`
+
 ## [0.2.0] - 2025-12-28
 
 ### Added

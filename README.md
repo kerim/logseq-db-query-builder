@@ -161,6 +161,7 @@ This is especially common when using the [online version](https://kerim.github.i
 
 ## Version History
 
+- **v0.3.1** - Journal-date relative filtering, autocomplete positioning fix
 - **v0.2.0** - Nested filter groups with AND/OR/NOT logic
 - **v0.1.x** - Property type awareness, auto-complete
 - **v0.0.x** - Initial release with basic filters

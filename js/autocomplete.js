@@ -23,7 +23,7 @@ class Autocomplete {
         this.dropdownElement = document.createElement('div');
         this.dropdownElement.className = 'autocomplete-dropdown';
         this.dropdownElement.style.cssText = `
-            position: absolute;
+            position: fixed;
             background: var(--bg-tertiary);
             border: 1px solid var(--border-color);
             border-radius: var(--radius-sm);

@@ -444,7 +444,8 @@ class FilterManager {
                                 // Get a sample value to infer the type
                                 // Ensure property ident has : prefix for query
                                 const queryIdent = propertyIdent.startsWith(':') ? propertyIdent : `:${propertyIdent}`;
-                                const sampleQuery = `[:find (pull ?b [${queryIdent}]) :where [?b ${queryIdent}] :limit 1]`;
+                                // Use nested pull for refs to detect journal-day (date-ref properties)
+                                const sampleQuery = `[:find (pull ?b [{${queryIdent} [:db/id :block/journal-day :block/title]}]) :where [?b ${queryIdent}] :limit 1]`;
                                 console.log('[PROP-INPUT] Query:', sampleQuery);
 
                                 const sampleResult = await window.app.api.executeQuery(window.app.state.graph, sampleQuery);
@@ -462,16 +463,27 @@ class FilterManager {
                                     // Infer type from sample value
                                     let valueType = ':db.type/string';  // default
                                     let cardinality = ':db.cardinality/one';
+                                    let isJournalDate = false;
 
                                     if (Array.isArray(sampleValue)) {
                                         cardinality = ':db.cardinality/many';
                                         if (sampleValue.length > 0 && typeof sampleValue[0] === 'object' &&
                                             (sampleValue[0][':db/id'] || sampleValue[0]['db/id'])) {
                                             valueType = ':db.type/ref';
+                                            // Check if any ref has journal-day (date-ref property)
+                                            if (sampleValue[0]['block/journal-day'] !== undefined ||
+                                                sampleValue[0][':block/journal-day'] !== undefined) {
+                                                isJournalDate = true;
+                                            }
                                         }
                                     } else if (typeof sampleValue === 'object' &&
                                                (sampleValue[':db/id'] || sampleValue['db/id'])) {
                                         valueType = ':db.type/ref';
+                                        // Check if ref has journal-day (date-ref property)
+                                        if (sampleValue['block/journal-day'] !== undefined ||
+                                            sampleValue[':block/journal-day'] !== undefined) {
+                                            isJournalDate = true;
+                                        }
                                     } else if (typeof sampleValue === 'boolean') {
                                         valueType = ':db.type/boolean';
                                     } else if (typeof sampleValue === 'number') {
@@ -482,7 +494,8 @@ class FilterManager {
                                         name: filter.propertyName,
                                         ident: propertyIdent,
                                         valueType: valueType,
-                                        cardinality: cardinality
+                                        cardinality: cardinality,
+                                        isJournalDate: isJournalDate
                                     };
                                     console.log('[PROP-INPUT] Schema SET:', filter.propertySchema);
 
@@ -691,8 +704,13 @@ class FilterManager {
                 this.renderCheckboxInput(filter, container);
                 break;
             case ':db.type/ref':
-                console.log('Rendering reference input');
-                this.renderReferenceInput(filter, container, schema);
+                if (schema.isJournalDate) {
+                    console.log('Rendering journal-date input');
+                    this.renderJournalDateInput(filter, container, schema);
+                } else {
+                    console.log('Rendering reference input');
+                    this.renderReferenceInput(filter, container, schema);
+                }
                 break;
             case ':db.type/instant':
                 this.renderDateInput(filter, container);
@@ -785,6 +803,266 @@ class FilterManager {
         existingInputs.forEach(el => el.remove());
 
         container.appendChild(wrapper);
+    }
+
+    /**
+     * Render journal-date property input with mode toggle (relative date vs select values)
+     */
+    renderJournalDateInput(filter, container, schema) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'property-value-input journal-date-input';
+
+        // Initialize dateMode if not set
+        if (!filter.dateMode) filter.dateMode = 'relative';
+
+        // Mode toggle
+        const modeToggle = document.createElement('select');
+        modeToggle.className = 'select-input-small date-mode-toggle';
+
+        const relativeOpt = document.createElement('option');
+        relativeOpt.value = 'relative';
+        relativeOpt.textContent = 'Relative date';
+        relativeOpt.selected = filter.dateMode === 'relative';
+
+        const valuesOpt = document.createElement('option');
+        valuesOpt.value = 'values';
+        valuesOpt.textContent = 'Select values';
+        valuesOpt.selected = filter.dateMode === 'values';
+
+        modeToggle.appendChild(relativeOpt);
+        modeToggle.appendChild(valuesOpt);
+
+        // Hide/show the operator dropdown based on mode
+        // The operator select is a sibling select.select-input-small in the .filter-inputs container
+        const updateOperatorVisibility = () => {
+            const operatorSelect = container.querySelector('select.select-input-small:not(.date-mode-toggle)');
+            if (operatorSelect) {
+                operatorSelect.style.display = filter.dateMode === 'relative' ? 'none' : '';
+            }
+        };
+
+        // Content area that changes based on mode
+        const contentArea = document.createElement('div');
+        contentArea.className = 'date-mode-content';
+
+        const renderModeContent = () => {
+            contentArea.textContent = '';
+            if (filter.dateMode === 'relative') {
+                this.renderRelativeDateControls(filter, contentArea);
+            } else {
+                this.renderReferenceInputInto(filter, contentArea, schema);
+            }
+            updateOperatorVisibility();
+        };
+
+        modeToggle.addEventListener('change', (e) => {
+            filter.dateMode = e.target.value;
+            // Clear value state when switching modes
+            if (filter.dateMode === 'relative') {
+                filter.value = '';
+            }
+            renderModeContent();
+            this.notifyChange();
+        });
+
+        wrapper.appendChild(modeToggle);
+        wrapper.appendChild(contentArea);
+
+        // Remove any existing value inputs before appending
+        const existingInputs = container.querySelectorAll('.property-value-input');
+        existingInputs.forEach(el => el.remove());
+
+        container.appendChild(wrapper);
+
+        // Render initial mode content
+        renderModeContent();
+    }
+
+    /**
+     * Render relative date controls (presets, number inputs)
+     */
+    renderRelativeDateControls(filter, container) {
+        const controls = document.createElement('div');
+        controls.className = 'relative-date-controls';
+
+        // Initialize default preset
+        if (!filter.relativeDatePreset) filter.relativeDatePreset = 'after-today';
+
+        // Preset dropdown — built with DOM methods
+        const presetSelect = document.createElement('select');
+        presetSelect.className = 'filter-input';
+        presetSelect.style.minWidth = '160px';
+        presetSelect.style.flex = '0 0 auto';
+
+        const presets = [
+            { value: 'after-today', label: 'After today' },
+            { value: 'before-today', label: 'Before today' },
+            { value: 'today', label: 'Today (exact)' },
+            { value: 'last-n-days', label: 'Last N days' },
+            { value: 'next-n-days', label: 'Next N days' },
+            { value: 'range', label: 'Custom range' }
+        ];
+        presets.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.value;
+            opt.textContent = p.label;
+            opt.selected = filter.relativeDatePreset === p.value;
+            presetSelect.appendChild(opt);
+        });
+
+        // Container for dynamic inputs (N days or range)
+        const dynamicInputs = document.createElement('div');
+        dynamicInputs.className = 'relative-date-dynamic';
+
+        const renderDynamicInputs = () => {
+            dynamicInputs.textContent = '';
+            const preset = filter.relativeDatePreset;
+
+            if (preset === 'last-n-days' || preset === 'next-n-days') {
+                const daysInput = document.createElement('input');
+                daysInput.type = 'number';
+                daysInput.className = 'filter-input';
+                daysInput.style.width = '80px';
+                daysInput.style.minWidth = '80px';
+                daysInput.style.flex = '0 0 auto';
+                daysInput.min = '1';
+                daysInput.placeholder = 'N';
+                daysInput.value = filter.relativeDateDays || '';
+                daysInput.addEventListener('change', (e) => {
+                    filter.relativeDateDays = parseInt(e.target.value, 10) || 0;
+                    this.notifyChange();
+                });
+
+                const label = document.createElement('span');
+                label.className = 'relative-date-label';
+                label.textContent = 'days';
+
+                dynamicInputs.appendChild(daysInput);
+                dynamicInputs.appendChild(label);
+            } else if (preset === 'range') {
+                const startInput = document.createElement('input');
+                startInput.type = 'number';
+                startInput.className = 'filter-input';
+                startInput.style.width = '80px';
+                startInput.style.minWidth = '80px';
+                startInput.style.flex = '0 0 auto';
+                startInput.placeholder = '30';
+                startInput.value = filter.relativeDateStart || '';
+                startInput.addEventListener('change', (e) => {
+                    filter.relativeDateStart = parseInt(e.target.value, 10) || 0;
+                    this.notifyChange();
+                });
+
+                const startLabel = document.createElement('span');
+                startLabel.className = 'relative-date-label';
+                startLabel.textContent = 'days ago to';
+
+                const endInput = document.createElement('input');
+                endInput.type = 'number';
+                endInput.className = 'filter-input';
+                endInput.style.width = '80px';
+                endInput.style.minWidth = '80px';
+                endInput.style.flex = '0 0 auto';
+                endInput.placeholder = '30';
+                endInput.value = filter.relativeDateEnd || '';
+                endInput.addEventListener('change', (e) => {
+                    filter.relativeDateEnd = parseInt(e.target.value, 10) || 0;
+                    this.notifyChange();
+                });
+
+                const endLabel = document.createElement('span');
+                endLabel.className = 'relative-date-label';
+                endLabel.textContent = 'days ahead';
+
+                dynamicInputs.appendChild(startInput);
+                dynamicInputs.appendChild(startLabel);
+                dynamicInputs.appendChild(endInput);
+                dynamicInputs.appendChild(endLabel);
+            }
+        };
+
+        presetSelect.addEventListener('change', (e) => {
+            filter.relativeDatePreset = e.target.value;
+            renderDynamicInputs();
+            this.notifyChange();
+        });
+
+        controls.appendChild(presetSelect);
+        controls.appendChild(dynamicInputs);
+        container.appendChild(controls);
+
+        // Render initial dynamic inputs
+        renderDynamicInputs();
+    }
+
+    /**
+     * Render reference input into a target container (reusable helper)
+     */
+    async renderReferenceInputInto(filter, targetContainer, schema) {
+        const values = await window.app.api.getPropertyValues(
+            window.app.state.graph,
+            filter.propertySchema.ident
+        );
+
+        if (schema.cardinality === ':db.cardinality/one') {
+            const select = document.createElement('select');
+            select.className = 'filter-input';
+
+            const emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = 'Select value...';
+            select.appendChild(emptyOption);
+
+            values.forEach(val => {
+                const option = document.createElement('option');
+                option.value = val.title;
+                option.textContent = val.title;
+                if (filter.value === val.title) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+
+            select.addEventListener('change', (e) => {
+                filter.value = e.target.value;
+                this.notifyChange();
+            });
+
+            targetContainer.appendChild(select);
+        } else {
+            const checkboxGroup = document.createElement('div');
+            checkboxGroup.className = 'checkbox-group';
+
+            if (!filter.value) filter.value = [];
+            if (!Array.isArray(filter.value)) filter.value = [filter.value];
+
+            values.forEach(val => {
+                const label = document.createElement('label');
+                label.className = 'checkbox-label';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = val.title;
+                checkbox.checked = filter.value.includes(val.title);
+
+                checkbox.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        if (!filter.value.includes(val.title)) {
+                            filter.value.push(val.title);
+                        }
+                    } else {
+                        filter.value = filter.value.filter(v => v !== val.title);
+                    }
+                    this.notifyChange();
+                });
+
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(' ' + val.title));
+                checkboxGroup.appendChild(label);
+            });
+
+            targetContainer.appendChild(checkboxGroup);
+        }
     }
 
     /**

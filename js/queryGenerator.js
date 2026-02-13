@@ -9,10 +9,15 @@ class QueryGenerator {
      * @param {Object} rootGroup - Root group containing nested groups and filters
      * @returns {Object|null} Object with raw and wrapped query versions, or null if invalid
      */
+    static varCounter = 0;
+
     static generate(rootGroup) {
         if (!rootGroup || rootGroup.type !== 'group') {
             return null;
         }
+
+        // Reset variable counter for unique journal-date variable names
+        this.varCounter = 0;
 
         // Get all filters flattened for validation and entity detection
         const allFilters = this.flattenFilters(rootGroup);
@@ -35,7 +40,7 @@ class QueryGenerator {
         // Build :find clause
         const findClause = this.buildFindClause(entityVar);
 
-        // Build recursive where section from group tree
+        // Build recursive where section from group tree (raw, with computed literals)
         const whereSection = this.buildGroupClause(rootGroup, entityVar);
 
         if (!whereSection) {
@@ -47,11 +52,39 @@ class QueryGenerator {
  :where
  ${whereSection}]`;
 
+        // Re-indent where section for wrapped query: normalize all lines to 3-space indent
+        const wrappedWhereLines = whereSection.split('\n').map(line => {
+            const trimmed = line.trimStart();
+            return trimmed.length > 0 ? '   ' + trimmed : '';
+        }).join('\n');
+
         // Build wrapped query (for Logseq)
-        const wrappedQuery = `{:query
+        // If relative date filters exist, replace today's literal with ?today variable
+        // and add :in $ ?today / :inputs [:today]
+        let wrappedQuery;
+        if (this.hasRelativeDateFilter(rootGroup)) {
+            const todayLiteral = String(this.computeYYYYMMDD(0));
+            const wrappedWhere = wrappedWhereLines.replaceAll(todayLiteral, '?today');
+            // Only add :inputs [:today] if the replacement actually occurred
+            if (wrappedWhere !== wrappedWhereLines) {
+                wrappedQuery = `{:query
+ [:find ${findClause}
+  :in $ ?today
+  :where
+${wrappedWhere}]
+ :inputs [:today]}`;
+            } else {
+                wrappedQuery = `{:query
  [:find ${findClause}
   :where
-  ${whereSection}]}`;
+${wrappedWhereLines}]}`;
+            }
+        } else {
+            wrappedQuery = `{:query
+ [:find ${findClause}
+  :where
+${wrappedWhereLines}]}`;
+        }
 
         // Return both versions
         return {
@@ -134,6 +167,22 @@ class QueryGenerator {
                 return filter.value && filter.value.trim().length > 0;
             
             case 'property':
+                // Journal-date relative mode: no value needed for some presets
+                if (filter.dateMode === 'relative' && filter.propertySchema?.isJournalDate) {
+                    const hasName = filter.propertyName && filter.propertyName.trim().length > 0;
+                    if (!hasName) return false;
+                    const preset = filter.relativeDatePreset;
+                    if (preset === 'after-today' || preset === 'before-today' || preset === 'today') {
+                        return true;
+                    }
+                    if (preset === 'last-n-days' || preset === 'next-n-days') {
+                        return filter.relativeDateDays > 0;
+                    }
+                    if (preset === 'range') {
+                        return filter.relativeDateStart != null && filter.relativeDateEnd != null;
+                    }
+                    return false;
+                }
                 // Property value can be string or array (checkbox selection)
                 const hasPropertyName = filter.propertyName &&
                                         filter.propertyName.trim().length > 0;
@@ -303,6 +352,11 @@ class QueryGenerator {
         if (propertySchema && propertySchema.ident) {
             // Ensure property ident has : prefix for query
             const propIdent = propertySchema.ident.startsWith(':') ? propertySchema.ident : `:${propertySchema.ident}`;
+
+            // Journal-date relative mode: special clause builder
+            if (propertySchema.isJournalDate && filter.dateMode === 'relative') {
+                return this.buildJournalDateClause(entityVar, propIdent, filter);
+            }
 
             switch (propertySchema.valueType) {
                 case ':db.type/boolean':
@@ -538,6 +592,77 @@ class QueryGenerator {
         return `[${entityVar} :block/uuid]
  (not-join [${entityVar}]
   ${combined})`;
+    }
+
+    /**
+     * Compute YYYYMMDD integer for a date offset from today
+     */
+    static computeYYYYMMDD(offsetDays) {
+        const d = new Date();
+        d.setDate(d.getDate() + offsetDays);
+        return parseInt(
+            `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`,
+            10
+        );
+    }
+
+    /**
+     * Build journal-date clause for relative date filtering
+     * Uses :block/journal-day on the referenced journal page
+     */
+    static buildJournalDateClause(entityVar, propIdent, filter) {
+        const idx = this.varCounter++;
+        const refVar = `?jdref${idx}`;
+        const dayVar = `?jd${idx}`;
+
+        // Base pattern: entity has property referencing a journal page
+        const basePattern = `[${entityVar} ${propIdent} ${refVar}]\n [${refVar} :block/journal-day ${dayVar}]`;
+
+        const today = this.computeYYYYMMDD(0);
+        let comparisons;
+
+        switch (filter.relativeDatePreset) {
+            case 'after-today':
+                comparisons = `[(> ${dayVar} ${today})]`;
+                break;
+            case 'before-today':
+                comparisons = `[(< ${dayVar} ${today})]`;
+                break;
+            case 'today':
+                comparisons = `[(= ${dayVar} ${today})]`;
+                break;
+            case 'last-n-days': {
+                const start = this.computeYYYYMMDD(-filter.relativeDateDays);
+                comparisons = `[(>= ${dayVar} ${start})]\n [(<= ${dayVar} ${today})]`;
+                break;
+            }
+            case 'next-n-days': {
+                const end = this.computeYYYYMMDD(filter.relativeDateDays);
+                comparisons = `[(>= ${dayVar} ${today})]\n [(<= ${dayVar} ${end})]`;
+                break;
+            }
+            case 'range': {
+                const rangeStart = this.computeYYYYMMDD(-filter.relativeDateStart);
+                const rangeEnd = this.computeYYYYMMDD(filter.relativeDateEnd);
+                comparisons = `[(>= ${dayVar} ${rangeStart})]\n [(<= ${dayVar} ${rangeEnd})]`;
+                break;
+            }
+            default:
+                return null;
+        }
+
+        return `${basePattern}\n ${comparisons}`;
+    }
+
+    /**
+     * Check if any filter in the tree uses relative journal-date mode
+     */
+    static hasRelativeDateFilter(node) {
+        if (!node) return false;
+        if (node.type === 'group' && node.children) {
+            return node.children.some(child => this.hasRelativeDateFilter(child));
+        }
+        return node.dateMode === 'relative' && node.propertySchema?.isJournalDate;
     }
 
     /**
