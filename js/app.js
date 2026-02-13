@@ -70,6 +70,11 @@ class App {
             }
         });
 
+        // Disconnect button
+        document.getElementById('disconnect-btn').addEventListener('click', () => {
+            this.disconnect();
+        });
+
         // Token visibility toggle
         document.getElementById('toggle-token-btn').addEventListener('click', () => {
             this.toggleTokenVisibility();
@@ -138,6 +143,24 @@ class App {
     }
 
     /**
+     * Disconnect: clear token and reset connection state
+     */
+    disconnect() {
+        localStorage.removeItem('logseqApiToken');
+        this.api.setToken('');
+
+        const tokenInput = document.getElementById('api-token');
+        tokenInput.value = '';
+        tokenInput.type = 'password';
+        document.getElementById('toggle-token-btn').textContent = 'Show';
+
+        this.state.connected = false;
+        this.state.graph = '';
+        this.updateConnectionStatus({ connected: false, graphName: null, error: null });
+        this.updateGraphDisplay(null);
+    }
+
+    /**
      * Toggle token input visibility
      */
     toggleTokenVisibility() {
@@ -183,11 +206,15 @@ class App {
         this.state.connected = health.connected;
         const statusEl = document.getElementById('connection-status');
         const setupHelp = document.getElementById('setup-help');
+        const connectBtn = document.getElementById('save-token-btn');
+        const disconnectBtn = document.getElementById('disconnect-btn');
 
         if (health.connected) {
             statusEl.classList.add('connected');
             statusEl.querySelector('.status-text').textContent = 'Connected';
             if (setupHelp) setupHelp.classList.add('hidden');
+            connectBtn.classList.add('hidden');
+            disconnectBtn.classList.remove('hidden');
         } else {
             statusEl.classList.remove('connected');
 
@@ -197,7 +224,213 @@ class App {
                 statusEl.querySelector('.status-text').textContent = 'Disconnected';
             }
 
-            if (setupHelp) setupHelp.classList.remove('hidden');
+            connectBtn.classList.remove('hidden');
+            disconnectBtn.classList.add('hidden');
+
+            if (setupHelp) {
+                setupHelp.classList.remove('hidden');
+                this.updateSetupHelp(setupHelp, health);
+            }
+        }
+    }
+
+    /**
+     * Update setup help content based on protocol and browser
+     */
+    updateSetupHelp(setupHelp, health) {
+        const isHTTPS = location.protocol === 'https:';
+
+        if (!isHTTPS) {
+            // Local/HTTP — show standard setup help
+            this.renderStandardSetupHelp(setupHelp);
+            return;
+        }
+
+        // HTTPS — check for browser-specific local network access issues
+        const isSafari = /^Apple/.test(navigator.vendor) && !/Chrome|CriOS/.test(navigator.userAgent);
+        const isChromium = /Chrome/.test(navigator.userAgent);
+
+        if (isSafari) {
+            this.renderSafariWarning(setupHelp);
+        } else if (isChromium) {
+            this.renderChromiumHelp(setupHelp);
+        } else {
+            // Firefox and others — standard help plus generic HTTPS note
+            this.renderStandardSetupHelp(setupHelp, true);
+        }
+    }
+
+    /**
+     * Render standard setup help (local/HTTP or Firefox)
+     */
+    renderStandardSetupHelp(container, includeHTTPSNote) {
+        // Clear and rebuild
+        while (container.firstChild) container.removeChild(container.firstChild);
+
+        const intro = document.createElement('p');
+        const strong1 = document.createElement('strong');
+        strong1.textContent = 'Not connected?';
+        intro.appendChild(strong1);
+        intro.appendChild(document.createTextNode(' Enable the Logseq HTTP API:'));
+        container.appendChild(intro);
+
+        const ol = document.createElement('ol');
+        const steps = [
+            'Open Logseq \u2192 Settings \u2192 Advanced \u2192 enable "Developer mode"',
+            'Restart Logseq',
+            'Go to Settings \u2192 API Server \u2192 enable "HTTP APIs server"',
+            'Click "Authorization tokens" \u2192 create a token',
+            'Paste the token above and click Connect'
+        ];
+        steps.forEach(text => {
+            const li = document.createElement('li');
+            li.textContent = text;
+            ol.appendChild(li);
+        });
+        container.appendChild(ol);
+
+        const note = document.createElement('p');
+        const strong2 = document.createElement('strong');
+        strong2.textContent = 'Note:';
+        note.appendChild(strong2);
+        note.appendChild(document.createTextNode(' Ad blockers may block requests to localhost. If connection fails, disable your ad blocker for this site.'));
+        container.appendChild(note);
+
+        if (includeHTTPSNote) {
+            const httpsNote = document.createElement('p');
+            const strong3 = document.createElement('strong');
+            strong3.textContent = 'HTTPS note:';
+            httpsNote.appendChild(strong3);
+            httpsNote.appendChild(document.createTextNode(' Some browsers may block requests from HTTPS pages to local services. If you cannot connect, try running the app locally or check your browser\'s local network access settings.'));
+            container.appendChild(httpsNote);
+        }
+
+        const link = document.createElement('p');
+        const a = document.createElement('a');
+        a.href = 'https://github.com/kerim/logseq-db-query-builder#troubleshooting';
+        a.target = '_blank';
+        a.textContent = 'Full setup instructions \u2192';
+        link.appendChild(a);
+        container.appendChild(link);
+    }
+
+    /**
+     * Render Safari-specific warning (HTTPS \u2192 HTTP localhost blocked)
+     */
+    renderSafariWarning(container) {
+        while (container.firstChild) container.removeChild(container.firstChild);
+
+        const warning = document.createElement('p');
+        const strong = document.createElement('strong');
+        strong.textContent = 'Safari does not support the online version.';
+        warning.appendChild(strong);
+        warning.appendChild(document.createTextNode(' Safari blocks all requests from HTTPS pages to local HTTP services (like the Logseq API). This is a known WebKit limitation ('));
+        const bugLink = document.createElement('a');
+        bugLink.href = 'https://bugs.webkit.org/show_bug.cgi?id=171934';
+        bugLink.target = '_blank';
+        bugLink.textContent = 'bug #171934';
+        warning.appendChild(bugLink);
+        warning.appendChild(document.createTextNode(', open since 2017).'));
+        container.appendChild(warning);
+
+        const alternatives = document.createElement('p');
+        alternatives.textContent = 'To use this tool, either:';
+        container.appendChild(alternatives);
+
+        const ol = document.createElement('ol');
+        const opt1 = document.createElement('li');
+        const strong1 = document.createElement('strong');
+        strong1.textContent = 'Switch to Chrome or Firefox';
+        opt1.appendChild(strong1);
+        opt1.appendChild(document.createTextNode(' (recommended)'));
+        ol.appendChild(opt1);
+
+        const opt2 = document.createElement('li');
+        const strong2 = document.createElement('strong');
+        strong2.textContent = 'Run locally:';
+        opt2.appendChild(strong2);
+        opt2.appendChild(document.createTextNode(' Clone the repository and open index.html directly'));
+        ol.appendChild(opt2);
+        container.appendChild(ol);
+
+        const link = document.createElement('p');
+        const a = document.createElement('a');
+        a.href = 'https://github.com/kerim/logseq-db-query-builder#4-browser-blocking-local-network-access';
+        a.target = '_blank';
+        a.textContent = 'See browser compatibility details \u2192';
+        link.appendChild(a);
+        container.appendChild(link);
+    }
+
+    /**
+     * Render Chromium-specific help (Chrome/Edge/Brave local network access)
+     */
+    renderChromiumHelp(container) {
+        while (container.firstChild) container.removeChild(container.firstChild);
+
+        const intro = document.createElement('p');
+        const strong = document.createElement('strong');
+        strong.textContent = 'Connection blocked?';
+        intro.appendChild(strong);
+        intro.appendChild(document.createTextNode(' Chrome-based browsers (v142+) require permission for websites to access local network services.'));
+        container.appendChild(intro);
+
+        const ol = document.createElement('ol');
+        const step1 = document.createElement('li');
+        step1.textContent = 'Look for a permission prompt in the address bar and click "Allow"';
+        ol.appendChild(step1);
+
+        const step2 = document.createElement('li');
+        step2.textContent = 'If you previously denied it: go to Settings \u2192 Privacy & Security \u2192 Site Settings \u2192 Local Network Access \u2192 allow for this site';
+        ol.appendChild(step2);
+
+        const step3 = document.createElement('li');
+        const strong3 = document.createElement('strong');
+        strong3.textContent = 'Brave users:';
+        step3.appendChild(strong3);
+        step3.appendChild(document.createTextNode(' also disable Shields for this site (click Shields icon \u2192 disable)'));
+        ol.appendChild(step3);
+        container.appendChild(ol);
+
+        // Also check LNA permission if available
+        this.checkLocalNetworkPermission(container);
+
+        const also = document.createElement('p');
+        also.textContent = 'Also make sure the Logseq HTTP API is enabled (Settings \u2192 Advanced \u2192 Developer mode \u2192 API Server).';
+        container.appendChild(also);
+
+        const link = document.createElement('p');
+        const a = document.createElement('a');
+        a.href = 'https://github.com/kerim/logseq-db-query-builder#4-browser-blocking-local-network-access';
+        a.target = '_blank';
+        a.textContent = 'Full browser compatibility details \u2192';
+        link.appendChild(a);
+        container.appendChild(link);
+    }
+
+    /**
+     * Check Local Network Access permission (Chrome 142+)
+     */
+    async checkLocalNetworkPermission(container) {
+        try {
+            const status = await navigator.permissions.query({ name: 'local-network' });
+            if (status.state === 'denied') {
+                const denied = document.createElement('p');
+                const strong = document.createElement('strong');
+                strong.textContent = 'Local network access is currently denied.';
+                denied.appendChild(strong);
+                denied.appendChild(document.createTextNode(' Go to Settings \u2192 Privacy & Security \u2192 Site Settings \u2192 Local Network Access to re-enable it for this site.'));
+                denied.style.color = 'var(--error-text)';
+                // Insert before the last child (the link)
+                container.insertBefore(denied, container.lastChild);
+            } else if (status.state === 'prompt') {
+                const prompt = document.createElement('p');
+                prompt.textContent = 'You should see a permission prompt in the address bar — click "Allow" to connect to the Logseq API.';
+                prompt.style.fontStyle = 'italic';
+                container.insertBefore(prompt, container.lastChild);
+            }
+        } catch (e) {
+            // Permission API doesn't support 'local-network' in this browser — that's fine
         }
     }
 

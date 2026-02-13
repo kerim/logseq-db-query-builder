@@ -5,6 +5,23 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-02-13
+
+### Added
+- **Disconnect button**: Clear API token from localStorage and reset connection state for security on shared computers
+- **HTTPS-aware setup help**: Detects when running on HTTPS and shows browser-specific guidance for local network access issues
+  - Safari: Shows warning that Safari blocks HTTPS→HTTP localhost requests, suggests Chrome/Firefox or running locally
+  - Chrome/Edge/Brave (v142+): Shows Local Network Access permission instructions, checks `navigator.permissions` API for denied/prompt state
+  - Firefox/other: Shows standard setup help with generic HTTPS note
+- **Browser compatibility table** in README Troubleshooting section with verified behaviors for all major browsers
+- Safari incompatibility note in README Quick Start section
+
+### Changed
+- Connect and Disconnect buttons toggle visibility based on connection state
+- Setup help content is now dynamically generated based on protocol and browser detection
+- Added `.btn-disconnect` CSS class with red styling for destructive action
+- Added generic `.hidden` utility class
+
 ## [0.4.5] - 2026-02-13
 
 ### Fixed

@@ -206,6 +206,29 @@ body {
     white-space: nowrap;
 }
 
+.btn-disconnect {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    background: var(--status-disconnected);
+    border: 1px solid var(--status-disconnected);
+    border-radius: var(--radius-md);
+    color: white;
+    font-size: var(--font-size-base);
+    font-family: var(--font-sans);
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.btn-disconnect:hover {
+    background: #dc2626;
+    border-color: #dc2626;
+}
+
+.hidden {
+    display: none !important;
+}
+
 .graph-display {
     display: flex;
     align-items: center;
@@ -276,10 +299,6 @@ body {
     border-radius: var(--radius-md);
     font-size: var(--font-size-sm);
     line-height: 1.6;
-}
-
-.setup-help.hidden {
-    display: none;
 }
 
 .setup-help p {

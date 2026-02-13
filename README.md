@@ -34,6 +34,8 @@ This tool connects to **Logseq's built-in HTTP API** (no extra server needed):
 3. Paste your API token and click **Connect**
 4. Start building queries!
 
+> **Note:** Safari does not support the online version (it blocks HTTPS-to-localhost requests). Use Chrome or Firefox instead, or run locally.
+
 ### Option 2: Run Locally
 
 1. Clone this repository:
@@ -147,12 +149,25 @@ logseq-db-query-builder/
 
 This is especially common when using the [online version](https://kerim.github.io/logseq-db-query-builder/) since ad blockers may block requests from external sites to localhost.
 
+**4. Browser blocking local network access**
+
+When using the online version (HTTPS), your browser may block requests to the local Logseq API (`http://127.0.0.1:12315`). Here's the browser compatibility:
+
+| Browser | HTTPS → HTTP localhost | What to do |
+|---------|----------------------|------------|
+| **Chrome/Edge/Brave/Opera** (v142+, Oct 2025) | Permission prompt appears | Click "Allow". If denied: Settings → Privacy & Security → Site Settings → Local Network Access → allow for this site. [Details](https://developer.chrome.com/blog/local-network-access) |
+| **Chrome/Edge** (pre-142) | Works | Loopback addresses exempted from mixed content blocking |
+| **Firefox** (55+) | Works | `http://127.0.0.1` treated as secure since Firefox 55 ([bug #903966](https://bugzilla.mozilla.org/show_bug.cgi?id=903966)) |
+| **Safari** | **Does not work** | Safari blocks all HTTPS→HTTP localhost requests. WebKit [bug #171934](https://bugs.webkit.org/show_bug.cgi?id=171934) open since 2017, unresolved. Use Chrome, Firefox, or run locally. |
+| **Brave** | Same as Chrome | Also disable Shields for this site (click Shields icon → disable) |
+
 ### "Query execution failed"
 - **Problem:** Invalid query or graph access issue
 - **Solution:** Try a simpler filter first, check browser console for details
 
 ## Version History
 
+- **v0.5.0** - Disconnect button, HTTPS/browser detection for local network access
 - **v0.4.5** - Fix journal-date dropdowns layout (side-by-side instead of stacked)
 - **v0.4.4** - Fix autocomplete on GitHub Pages (cache-busting for JS/CSS)
 - **v0.4.3** - Fix "Untitled" results display with short-key fallbacks
