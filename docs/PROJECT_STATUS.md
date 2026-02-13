@@ -1,8 +1,12 @@
 # Logseq DB Query Builder - Project Status
 
-## 🎉 v0.1.7 Released! (2025-12-28)
+## v0.4.5 (2026-02-13)
 
-**Current Version**: v0.1.7
+**Current Version**: v0.4.5
+
+### What's New in v0.4.5
+- Fix journal-date dropdowns stacking vertically instead of side-by-side
+- Removed `width: 100%` from `.date-mode-content` so flex items sit on one row
 
 ### What's New in v0.1.7
 - 🐛 **CRITICAL FIX**: Property filters with checkbox selection now included in queries
@@ -454,7 +458,7 @@ open index.html
 
 ---
 
-**Last Updated**: 2025-12-26
-**Version**: 0.0.7
+**Last Updated**: 2026-02-13
+**Version**: 0.4.5
 **Status**: Active Development
 **Maintainer**: P. Kerim Friedman

@@ -520,6 +520,7 @@ section {
 
 /* Property suggestions hint for tags */
 .property-suggestions-hint {
+    width: 100%;
     padding: var(--spacing-sm);
     background: var(--bg-secondary);
     border-left: 3px solid var(--accent-primary);
@@ -537,8 +538,10 @@ section {
    Journal Date / Relative Date Controls
    =========================== */
 .journal-date-input {
+    width: 100%;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
     gap: var(--spacing-sm);
 }
 
@@ -547,7 +550,6 @@ section {
 }
 
 .date-mode-content {
-    width: 100%;
 }
 
 .relative-date-controls {

@@ -153,6 +153,7 @@ This is especially common when using the [online version](https://kerim.github.i
 
 ## Version History
 
+- **v0.4.5** - Fix journal-date dropdowns layout (side-by-side instead of stacked)
 - **v0.4.4** - Fix autocomplete on GitHub Pages (cache-busting for JS/CSS)
 - **v0.4.3** - Fix "Untitled" results display with short-key fallbacks
 - **v0.4.1** - Fix quote escaping, entity-reference schema handling, result flattening
