@@ -123,6 +123,7 @@ Key methods:
 - **Current version**: check `index.html` line 6 (authoritative source)
 - **Increment with every change**: PATCH for fixes, MINOR for features
 - **Update in**: `index.html` (title + header), `README.md`, `docs/PROJECT_STATUS.md`, `CHANGELOG.md`
+- **Cache-busting**: Update `?v=X.Y.Z` query strings on all `<script>` and `<link>` tags in `index.html` — GitHub Pages CDN caches JS/CSS aggressively
 - **Tag every commit**: `git tag vX.Y.Z`
 
 ### Test Query Syntax Before Implementing

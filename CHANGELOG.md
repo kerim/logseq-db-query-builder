@@ -5,6 +5,13 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.4] - 2026-02-13
+
+### Fixed
+- Fix autocomplete broken on GitHub Pages: browser cache serving stale v0.4.1 JS files despite v0.4.3 index.html
+- Add `?v=0.4.4` cache-busting query strings to all `<script>` and `<link>` tags in `index.html`
+- Add cache-busting reminder to version management checklist in `.claude/CLAUDE.md`
+
 ## [0.4.3] - 2026-02-13
 
 ### Fixed
