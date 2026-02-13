@@ -5,6 +5,12 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3] - 2026-02-13
+
+### Fixed
+- Fix "Untitled" results: add short-key fallbacks for title, uuid, and tags in result rendering (`app.js`) and UUID resolution (`api.js`)
+- Handle both namespaced keys (`block/title`) and short keys (`title`) returned by Logseq built-in API
+
 ## [0.4.1] - 2026-02-13
 
 ### Fixed
