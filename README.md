@@ -88,9 +88,9 @@ ALL of the following:
 | **full text search** | Search block content | contains, equals |
 | **property** | Match property values | Auto-detects type (text, reference, boolean, date, number) |
 | **page reference** | Find blocks linking to pages | Auto-complete |
-| **task** | Find task items | Status filter with multi-select |
+| **task** | Find task items | Status filter (multi-select). "Todo" also matches Task-tagged blocks with no explicit status, matching Logseq's task UI |
 | **priority** | Filter by priority | Urgent, High, Medium, Low |
-| **between (dates)** | Date range queries | created-at, updated-at, journal-day |
+| **between (dates)** | Date range queries | created-at, updated-at, journal-day. Absolute mode (date pickers) or Relative mode (Last/Next N days, custom range) |
 
 ## Property Type Detection
 
@@ -98,9 +98,11 @@ When you select a property, the tool automatically detects its type and provides
 
 - **Reference properties** → Dropdown or checkboxes with actual values
 - **Boolean properties** → Checked/Unchecked radio buttons
-- **Date properties** → Date picker with comparison operators
+- **Date properties** (e.g. `deadline`, `scheduled`, custom `:date`/`:datetime`) → Absolute/Relative mode toggle. Absolute = date picker + operator. Relative = presets like "Last 7 days", "Next 30 days", custom offset range. Wrapped queries use Logseq's input keywords (`?-7d`, `?today`, `?+1d-start`, …) so the window is easy to widen by hand.
 - **Number properties** → Number input with comparison operators
 - **Text properties** → Text input
+
+Schema is discovered from the property's `:logseq.property/type` (Logseq DB's source of truth), so user-defined properties with UUID suffixes and properties with no values set yet are still recognized.
 
 ## Using Generated Queries in Logseq
 

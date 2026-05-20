@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Task filter "Todo" now matches Logseq's task UI semantics.** Previously, the status filter required `:logseq.property/status` to be explicitly set to "Todo". But Logseq treats Task-tagged blocks with no explicit status as having the default "Todo" status (per `:logseq.property/status`'s `:logseq.property/default-value`). When "Todo" is in the selected statuses, the query now OR-ins a `(not-join [?b] [?b :logseq.property/status _])` branch so blocks with no explicit status are included. Other status selections (Done, Backlog, etc.) are unchanged.
 
+### Internal
+- Removed dead `renderDateInput` method in `js/filters.js` (orphaned after the v0.6.0 change routed `:db.type/instant` properties through the new shared `renderDateValueInput`). No behavior change.
+
 ## [0.6.1] - 2026-05-20
 
 ### Changed
