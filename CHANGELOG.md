@@ -5,6 +5,32 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.2] - 2026-05-20
+
+### Fixed
+- **Task filter "Todo" now matches Logseq's task UI semantics.** Previously, the status filter required `:logseq.property/status` to be explicitly set to "Todo". But Logseq treats Task-tagged blocks with no explicit status as having the default "Todo" status (per `:logseq.property/status`'s `:logseq.property/default-value`). When "Todo" is in the selected statuses, the query now OR-ins a `(not-join [?b] [?b :logseq.property/status _])` branch so blocks with no explicit status are included. Other status selections (Done, Backlog, etc.) are unchanged.
+
+## [0.6.1] - 2026-05-20
+
+### Changed
+- **Wrapped query uses Logseq input keywords instead of raw timestamps.** Relative-date filters now emit human-readable input symbols (`?today`, `?-7d`, `?+14d`, `?start-of-today-ms`, `?-7d-start`, `?+1d-start`, etc.) in the wrapped query, with the matching keywords listed in `:inputs [...]`. The raw query (sent directly via the HTTP API) still uses literal numbers — only the wrapped version (shown in the UI for copy/paste into a Logseq `/query` block) gets the substitution. This makes the wrapped query easy to edit by hand: change `?-7d` to `?-30d` to widen the window, no math required.
+- Removed the obsolete single-`?today`-only substitution path. All relative-date literals (YYYYMMDD integers and ms timestamps alike) now flow through the same tagging pipeline.
+
+## [0.6.0] - 2026-05-20
+
+### Added
+- **Between filter Absolute/Relative mode toggle**: The "between (dates)" filter now has a "Mode:" toggle between Absolute (two date pickers, the existing behavior) and Relative (preset like "Last 7 days", "Next 30 days", "Custom range"). Works for all three date properties: `created-at`, `updated-at`, and `journal-day`.
+- **Property filter relative dates for `:datetime` properties**: Properties like `deadline` and `scheduled` (which Logseq stores as `:logseq.property/type :datetime` with millisecond timestamps) now render the Absolute/Relative mode toggle alongside the date picker. Previously they fell through to a "contains" text input when no sample values existed in the graph.
+- **Property filter relative dates for `:date` properties**: User-defined `:date` properties (e.g., `projectdeadline`, stored as refs to journal pages) also pick up the toggle. Schema lookup now uses the full property ident, so it works for user properties with UUID suffixes (`:user.property/foo-abc123`) and properties with zero values set.
+
+### Fixed
+- **Between filter absolute mode + `journal-day` returned zero results**: Pre-existing bug — the function emitted millisecond comparisons against `:block/journal-day`, which stores YYYYMMDD integers (e.g., `20260520`). Now uses a new `dateStringToYYYYMMDD` helper with local-time parsing (avoids the `new Date("YYYY-MM-DD")` UTC-midnight off-by-one in negative-UTC timezones).
+
+### Changed
+- Property filter `dateMode` toggle now reads "Absolute | Relative" uniformly (was "Relative date | Select values" for journal-date refs only). The absolute branch dispatches internally on `valueType`: `:db.type/instant` renders a calendar picker + operator; `:db.type/ref + isJournalDate` renders the existing "Select values" UI.
+- Default mode per property type: `:db.type/instant` defaults to Absolute (matches the prior date-picker default); `:db.type/ref + isJournalDate` defaults to Relative (matches the prior journal-date default).
+- Schema discovery now queries `:logseq.property/type` (Logseq DB's source of truth) via a new `getPropertySchemaByIdent` API method, falling back to the previous sample-value inference only when the schema lookup returns nothing.
+
 ## [0.5.0] - 2026-02-13
 
 ### Added

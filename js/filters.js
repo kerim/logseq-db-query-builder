@@ -42,7 +42,7 @@ const FILTER_TYPES = {
     'between': {
         label: 'between (dates)',
         operators: null,
-        inputs: ['date-range', 'date-property-select']
+        inputs: ['between-mode-toggle', 'between-value-area', 'date-property-select']
     }
 };
 
@@ -84,7 +84,12 @@ class FilterManager {
             propertyName: '',
             startDate: '',
             endDate: '',
-            dateProperty: 'created-at'
+            dateProperty: 'created-at',
+            betweenDateMode: 'absolute',
+            relativeDatePreset: null,
+            relativeDateDays: 7,
+            relativeDateStart: 7,
+            relativeDateEnd: 7
         };
     }
 
@@ -441,78 +446,85 @@ class FilterManager {
                             filter.propertyIdent = propertyIdent;
                         }
 
-                        // Infer property type from actual usage
+                        // Discover property type. Try authoritative schema lookup first
+                        // (works for zero-value properties and user properties with UUID
+                        // suffixes); fall back to sample-value inference if the schema's
+                        // :logseq.property/type is missing or unrecognized.
                         if (propertyIdent && window.app.state.graph) {
                             console.log('[PROP-INPUT] Entering async block...');
                             try {
-                                // Get a sample value to infer the type
-                                // Ensure property ident has : prefix for query
-                                const queryIdent = propertyIdent.startsWith(':') ? propertyIdent : `:${propertyIdent}`;
-                                // Use nested pull for refs to detect journal-day (date-ref properties)
-                                const sampleQuery = `[:find (pull ?b [{${queryIdent} [:db/id :block/journal-day :block/title]}]) :where [?b ${queryIdent}] :limit 1]`;
-                                console.log('[PROP-INPUT] Query:', sampleQuery);
+                                const authoritative = await window.app.api.getPropertySchemaByIdent(
+                                    window.app.state.graph, propertyIdent
+                                );
+                                console.log('[PROP-INPUT] Authoritative schema:', authoritative);
 
-                                const sampleResult = await window.app.api.executeQuery(window.app.state.graph, sampleQuery);
-                                console.log('[PROP-INPUT] Result:', JSON.stringify(sampleResult, null, 2));
-
-                                if (sampleResult.data && sampleResult.data.length > 0) {
-                                    console.log('[PROP-INPUT] Data[0]:', sampleResult.data[0]);
-
-                                    // Result structure: [{propertyIdent: value}, ...]
-                                    // Note: Keys in result don't have ':' prefix
-                                    const strippedIdent = propertyIdent.startsWith(':') ? propertyIdent.slice(1) : propertyIdent;
-                                    const sampleValue = sampleResult.data[0][propertyIdent] || sampleResult.data[0][strippedIdent];
-                                    console.log('[PROP-INPUT] Sample value:', sampleValue);
-                                    console.log('[PROP-INPUT] Value type:', typeof sampleValue);
-
-                                    // Infer type from sample value
-                                    let valueType = ':db.type/string';  // default
-                                    let cardinality = ':db.cardinality/one';
-                                    let isJournalDate = false;
-
-                                    if (Array.isArray(sampleValue)) {
-                                        cardinality = ':db.cardinality/many';
-                                        if (sampleValue.length > 0 && typeof sampleValue[0] === 'object' &&
-                                            (sampleValue[0][':db/id'] || sampleValue[0]['db/id'] || sampleValue[0]['id'])) {
-                                            valueType = ':db.type/ref';
-                                            // Check if any ref has journal-day (date-ref property)
-                                            if (sampleValue[0]['block/journal-day'] !== undefined ||
-                                                sampleValue[0][':block/journal-day'] !== undefined ||
-                                                sampleValue[0]['journal-day'] !== undefined) {
-                                                isJournalDate = true;
-                                            }
-                                        }
-                                    } else if (typeof sampleValue === 'object' &&
-                                               (sampleValue[':db/id'] || sampleValue['db/id'] || sampleValue['id'])) {
-                                        valueType = ':db.type/ref';
-                                        // Check if ref has journal-day (date-ref property)
-                                        if (sampleValue['block/journal-day'] !== undefined ||
-                                            sampleValue[':block/journal-day'] !== undefined ||
-                                            sampleValue['journal-day'] !== undefined) {
-                                            isJournalDate = true;
-                                        }
-                                    } else if (typeof sampleValue === 'boolean') {
-                                        valueType = ':db.type/boolean';
-                                    } else if (typeof sampleValue === 'number') {
-                                        valueType = ':db.type/number';
-                                    }
-
+                                if (authoritative && authoritative.valueType) {
                                     filter.propertySchema = {
                                         name: filter.propertyName,
                                         ident: propertyIdent,
-                                        valueType: valueType,
-                                        cardinality: cardinality,
-                                        isJournalDate: isJournalDate
+                                        valueType: authoritative.valueType,
+                                        cardinality: authoritative.cardinality || ':db.cardinality/one',
+                                        isJournalDate: authoritative.isJournalDate,
+                                        logseqType: authoritative.logseqType
                                     };
-                                    console.log('[PROP-INPUT] Schema SET:', filter.propertySchema);
-
-                                    // Re-render value input based on inferred type
+                                    console.log('[PROP-INPUT] Schema SET (authoritative):', filter.propertySchema);
                                     this.renderPropertyValueInput(filter, container);
-
-                                    // Call notifyChange AFTER schema is set and value input is rendered
                                     this.notifyChange();
                                 } else {
-                                    console.log('[PROP-INPUT] NO DATA - query returned empty');
+                                    // Fall back to sample-value inference
+                                    const queryIdent = propertyIdent.startsWith(':') ? propertyIdent : `:${propertyIdent}`;
+                                    const sampleQuery = `[:find (pull ?b [{${queryIdent} [:db/id :block/journal-day :block/title]}]) :where [?b ${queryIdent}] :limit 1]`;
+                                    console.log('[PROP-INPUT] Fallback sample query:', sampleQuery);
+
+                                    const sampleResult = await window.app.api.executeQuery(window.app.state.graph, sampleQuery);
+
+                                    if (sampleResult.data && sampleResult.data.length > 0) {
+                                        const strippedIdent = propertyIdent.startsWith(':') ? propertyIdent.slice(1) : propertyIdent;
+                                        const sampleValue = sampleResult.data[0][propertyIdent] || sampleResult.data[0][strippedIdent];
+
+                                        let valueType = ':db.type/string';
+                                        let cardinality = ':db.cardinality/one';
+                                        let isJournalDate = false;
+
+                                        if (Array.isArray(sampleValue)) {
+                                            cardinality = ':db.cardinality/many';
+                                            if (sampleValue.length > 0 && typeof sampleValue[0] === 'object' &&
+                                                (sampleValue[0][':db/id'] || sampleValue[0]['db/id'] || sampleValue[0]['id'])) {
+                                                valueType = ':db.type/ref';
+                                                if (sampleValue[0]['block/journal-day'] !== undefined ||
+                                                    sampleValue[0][':block/journal-day'] !== undefined ||
+                                                    sampleValue[0]['journal-day'] !== undefined) {
+                                                    isJournalDate = true;
+                                                }
+                                            }
+                                        } else if (typeof sampleValue === 'object' &&
+                                                   (sampleValue[':db/id'] || sampleValue['db/id'] || sampleValue['id'])) {
+                                            valueType = ':db.type/ref';
+                                            if (sampleValue['block/journal-day'] !== undefined ||
+                                                sampleValue[':block/journal-day'] !== undefined ||
+                                                sampleValue['journal-day'] !== undefined) {
+                                                isJournalDate = true;
+                                            }
+                                        } else if (typeof sampleValue === 'boolean') {
+                                            valueType = ':db.type/boolean';
+                                        } else if (typeof sampleValue === 'number') {
+                                            valueType = ':db.type/number';
+                                        }
+
+                                        filter.propertySchema = {
+                                            name: filter.propertyName,
+                                            ident: propertyIdent,
+                                            valueType: valueType,
+                                            cardinality: cardinality,
+                                            isJournalDate: isJournalDate
+                                        };
+                                        console.log('[PROP-INPUT] Schema SET (sample inference):', filter.propertySchema);
+                                        this.renderPropertyValueInput(filter, container);
+                                        this.notifyChange();
+                                    } else {
+                                        console.log('[PROP-INPUT] No authoritative schema and no sample data');
+                                        this.notifyChange();
+                                    }
                                 }
                             } catch (error) {
                                 console.error('[PROP-INPUT] ERROR:', error);
@@ -520,7 +532,6 @@ class FilterManager {
                             }
                         } else {
                             console.log('[PROP-INPUT] SKIPPED - missing ident or graph');
-                            // No property ident - call notifyChange for property name change
                             this.notifyChange();
                         }
 
@@ -638,33 +649,58 @@ class FilterManager {
                     container.appendChild(extensionsWrapper);
                     break;
 
-                case 'date-range':
-                    const startInput = document.createElement('input');
-                    startInput.type = 'date';
-                    startInput.className = 'filter-input';
-                    startInput.value = filter.startDate || '';
-                    startInput.addEventListener('change', (e) => {
-                        filter.startDate = e.target.value;
+                case 'between-mode-toggle': {
+                    if (!filter.betweenDateMode) filter.betweenDateMode = 'absolute';
+
+                    const modeWrapper = document.createElement('div');
+                    modeWrapper.className = 'between-mode-toggle';
+                    modeWrapper.style.cssText = 'display: flex; align-items: center; gap: var(--spacing-sm);';
+
+                    const modeLabel = document.createElement('span');
+                    modeLabel.textContent = 'Mode:';
+                    modeLabel.style.color = 'var(--text-muted, #888)';
+
+                    const modeSelect = document.createElement('select');
+                    modeSelect.className = 'select-input-small between-mode-select';
+
+                    const absoluteOpt = document.createElement('option');
+                    absoluteOpt.value = 'absolute';
+                    absoluteOpt.textContent = 'Absolute';
+                    absoluteOpt.selected = filter.betweenDateMode === 'absolute';
+
+                    const relativeOpt = document.createElement('option');
+                    relativeOpt.value = 'relative';
+                    relativeOpt.textContent = 'Relative';
+                    relativeOpt.selected = filter.betweenDateMode === 'relative';
+
+                    modeSelect.appendChild(absoluteOpt);
+                    modeSelect.appendChild(relativeOpt);
+
+                    modeSelect.addEventListener('change', (e) => {
+                        filter.betweenDateMode = e.target.value;
+                        // Re-render the value area for this filter row
+                        const valueArea = container.querySelector('.between-value-area');
+                        if (valueArea) {
+                            valueArea.textContent = '';
+                            this.renderBetweenValueArea(filter, valueArea);
+                        }
                         this.notifyChange();
                     });
-                    
-                    const toLabel = document.createElement('span');
-                    toLabel.textContent = 'to';
-                    toLabel.style.padding = '0 8px';
-                    
-                    const endInput = document.createElement('input');
-                    endInput.type = 'date';
-                    endInput.className = 'filter-input';
-                    endInput.value = filter.endDate || '';
-                    endInput.addEventListener('change', (e) => {
-                        filter.endDate = e.target.value;
-                        this.notifyChange();
-                    });
-                    
-                    container.appendChild(startInput);
-                    container.appendChild(toLabel);
-                    container.appendChild(endInput);
+
+                    modeWrapper.appendChild(modeLabel);
+                    modeWrapper.appendChild(modeSelect);
+                    container.appendChild(modeWrapper);
                     break;
+                }
+
+                case 'between-value-area': {
+                    const valueArea = document.createElement('div');
+                    valueArea.className = 'between-value-area';
+                    valueArea.style.cssText = 'display: flex; align-items: center; gap: var(--spacing-sm);';
+                    this.renderBetweenValueArea(filter, valueArea);
+                    container.appendChild(valueArea);
+                    break;
+                }
 
                 case 'date-property-select':
                     const datePropSelect = document.createElement('select');
@@ -712,15 +748,16 @@ class FilterManager {
                 break;
             case ':db.type/ref':
                 if (schema.isJournalDate) {
-                    console.log('Rendering journal-date input');
-                    this.renderJournalDateInput(filter, container, schema);
+                    console.log('Rendering date-value input (ref-journal)');
+                    this.renderDateValueInput(filter, container, schema);
                 } else {
                     console.log('Rendering reference input');
                     this.renderReferenceInput(filter, container, schema);
                 }
                 break;
             case ':db.type/instant':
-                this.renderDateInput(filter, container);
+                console.log('Rendering date-value input (instant)');
+                this.renderDateValueInput(filter, container, schema);
                 break;
             case ':db.type/number':
                 this.renderNumberInput(filter, container);
@@ -813,34 +850,77 @@ class FilterManager {
     }
 
     /**
-     * Render journal-date property input with mode toggle (relative date vs select values)
+     * Render the value-area for a between filter, dispatching on betweenDateMode.
+     * Absolute mode: two date pickers separated by "to".
+     * Relative mode: reuses renderRelativeDateControls (same UI as journal-date property filter).
      */
-    renderJournalDateInput(filter, container, schema) {
+    renderBetweenValueArea(filter, container) {
+        if (filter.betweenDateMode === 'relative') {
+            this.renderRelativeDateControls(filter, container);
+            return;
+        }
+
+        const startInput = document.createElement('input');
+        startInput.type = 'date';
+        startInput.className = 'filter-input';
+        startInput.value = filter.startDate || '';
+        startInput.addEventListener('change', (e) => {
+            filter.startDate = e.target.value;
+            this.notifyChange();
+        });
+
+        const toLabel = document.createElement('span');
+        toLabel.textContent = 'to';
+        toLabel.style.padding = '0 8px';
+
+        const endInput = document.createElement('input');
+        endInput.type = 'date';
+        endInput.className = 'filter-input';
+        endInput.value = filter.endDate || '';
+        endInput.addEventListener('change', (e) => {
+            filter.endDate = e.target.value;
+            this.notifyChange();
+        });
+
+        container.appendChild(startInput);
+        container.appendChild(toLabel);
+        container.appendChild(endInput);
+    }
+
+    /**
+     * Render date-typed property input with Absolute/Relative mode toggle.
+     * Handles both :db.type/instant (millisecond timestamps) and :db.type/ref
+     * to journal pages (YYYYMMDD via the journal-day attribute).
+     * The absolute branch dispatches on valueType for the right concrete UI.
+     */
+    renderDateValueInput(filter, container, schema) {
         const wrapper = document.createElement('div');
-        wrapper.className = 'property-value-input journal-date-input';
+        wrapper.className = 'property-value-input date-value-input';
 
-        // Initialize dateMode if not set
-        if (!filter.dateMode) filter.dateMode = 'relative';
+        // Default mode preserves current behavior per storage type:
+        // - :db.type/instant (calendar picker today) → 'absolute'
+        // - :db.type/ref + isJournalDate (relative today) → 'relative'
+        if (!filter.dateMode) {
+            filter.dateMode = (schema.valueType === ':db.type/instant') ? 'absolute' : 'relative';
+        }
 
-        // Mode toggle
+        // Mode toggle: Absolute | Relative
         const modeToggle = document.createElement('select');
         modeToggle.className = 'select-input-small date-mode-toggle';
 
+        const absoluteOpt = document.createElement('option');
+        absoluteOpt.value = 'absolute';
+        absoluteOpt.textContent = 'Absolute';
+        absoluteOpt.selected = filter.dateMode === 'absolute';
+
         const relativeOpt = document.createElement('option');
         relativeOpt.value = 'relative';
-        relativeOpt.textContent = 'Relative date';
+        relativeOpt.textContent = 'Relative';
         relativeOpt.selected = filter.dateMode === 'relative';
 
-        const valuesOpt = document.createElement('option');
-        valuesOpt.value = 'values';
-        valuesOpt.textContent = 'Select values';
-        valuesOpt.selected = filter.dateMode === 'values';
-
+        modeToggle.appendChild(absoluteOpt);
         modeToggle.appendChild(relativeOpt);
-        modeToggle.appendChild(valuesOpt);
 
-        // Hide/show the operator dropdown based on mode
-        // The operator select is a sibling select.select-input-small in the .filter-inputs container
         const updateOperatorVisibility = () => {
             const operatorSelect = container.querySelector('select.select-input-small:not(.date-mode-toggle)');
             if (operatorSelect) {
@@ -848,7 +928,6 @@ class FilterManager {
             }
         };
 
-        // Content area that changes based on mode
         const contentArea = document.createElement('div');
         contentArea.className = 'date-mode-content';
 
@@ -856,7 +935,11 @@ class FilterManager {
             contentArea.textContent = '';
             if (filter.dateMode === 'relative') {
                 this.renderRelativeDateControls(filter, contentArea);
+            } else if (schema.valueType === ':db.type/instant') {
+                // Absolute mode for instant: simple date picker + operator
+                this.renderInstantAbsoluteInto(filter, contentArea);
             } else {
+                // Absolute mode for ref-to-journal: pick from existing journal pages
                 this.renderReferenceInputInto(filter, contentArea, schema);
             }
             updateOperatorVisibility();
@@ -864,7 +947,6 @@ class FilterManager {
 
         modeToggle.addEventListener('change', (e) => {
             filter.dateMode = e.target.value;
-            // Clear value state when switching modes
             if (filter.dateMode === 'relative') {
                 filter.value = '';
             }
@@ -875,14 +957,55 @@ class FilterManager {
         wrapper.appendChild(modeToggle);
         wrapper.appendChild(contentArea);
 
-        // Remove any existing value inputs before appending
         const existingInputs = container.querySelectorAll('.property-value-input');
         existingInputs.forEach(el => el.remove());
 
         container.appendChild(wrapper);
 
-        // Render initial mode content
         renderModeContent();
+    }
+
+    /**
+     * Render an absolute date-picker + operator pair into a target container.
+     * Used by renderDateValueInput's absolute branch when valueType is :db.type/instant.
+     */
+    renderInstantAbsoluteInto(filter, targetContainer) {
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'display: flex; gap: var(--spacing-sm);';
+
+        const operatorSelect = document.createElement('select');
+        operatorSelect.className = 'filter-input';
+        operatorSelect.style.width = '80px';
+
+        ['=', '<', '>', '<=', '>='].forEach(op => {
+            const option = document.createElement('option');
+            option.value = op;
+            option.textContent = op === '=' ? 'is' : op;
+            if (filter.operator === op || (op === '=' && !filter.operator)) {
+                option.selected = true;
+            }
+            operatorSelect.appendChild(option);
+        });
+
+        operatorSelect.addEventListener('change', (e) => {
+            filter.operator = e.target.value;
+            this.notifyChange();
+        });
+
+        const dateInput = document.createElement('input');
+        dateInput.type = 'date';
+        dateInput.className = 'filter-input';
+        dateInput.style.flex = '1';
+        dateInput.value = filter.value || '';
+
+        dateInput.addEventListener('change', (e) => {
+            filter.value = e.target.value;
+            this.notifyChange();
+        });
+
+        wrapper.appendChild(operatorSelect);
+        wrapper.appendChild(dateInput);
+        targetContainer.appendChild(wrapper);
     }
 
     /**
@@ -1103,56 +1226,6 @@ class FilterManager {
         });
 
         wrapper.appendChild(radioGroup);
-
-        // Remove any existing value inputs before appending
-        const existingInputs = container.querySelectorAll('.property-value-input');
-        existingInputs.forEach(el => el.remove());
-
-        container.appendChild(wrapper);
-    }
-
-    /**
-     * Render date property input (date picker + operator)
-     */
-    renderDateInput(filter, container) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'property-value-input';
-        wrapper.style.cssText = 'display: flex; gap: var(--spacing-sm);';
-
-        // Operator dropdown
-        const operatorSelect = document.createElement('select');
-        operatorSelect.className = 'filter-input';
-        operatorSelect.style.width = '80px';
-
-        ['=', '<', '>', '<=', '>='].forEach(op => {
-            const option = document.createElement('option');
-            option.value = op;
-            option.textContent = op === '=' ? 'is' : op;
-            if (filter.operator === op || (op === '=' && !filter.operator)) {
-                option.selected = true;
-            }
-            operatorSelect.appendChild(option);
-        });
-
-        operatorSelect.addEventListener('change', (e) => {
-            filter.operator = e.target.value;
-            this.notifyChange();
-        });
-
-        // Date input
-        const dateInput = document.createElement('input');
-        dateInput.type = 'date';
-        dateInput.className = 'filter-input';
-        dateInput.style.flex = '1';
-        dateInput.value = filter.value || '';
-
-        dateInput.addEventListener('change', (e) => {
-            filter.value = e.target.value;
-            this.notifyChange();
-        });
-
-        wrapper.appendChild(operatorSelect);
-        wrapper.appendChild(dateInput);
 
         // Remove any existing value inputs before appending
         const existingInputs = container.querySelectorAll('.property-value-input');

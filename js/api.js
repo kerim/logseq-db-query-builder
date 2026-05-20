@@ -267,33 +267,82 @@ class LogseqAPI {
     }
 
     /**
-     * Get property schema (type, cardinality, etc.)
+     * Get property schema by full ident.
+     * Queries the property entity directly, so it works for user properties
+     * with UUID suffixes (e.g. :user.property/foo-abc123) and properties with
+     * zero values set in the graph.
+     *
+     * Logseq DB uses :logseq.property/type (not Datascript :db/valueType) as
+     * the source of truth for property type. We translate to a Datascript-
+     * equivalent valueType for compatibility with existing dispatch logic,
+     * plus return the raw logseqType + isJournalDate flag for callers that
+     * need finer granularity.
+     *
      * @param {string} graphName - Ignored
-     * @param {string} propertyName - Property name (without namespace)
+     * @param {string} fullIdent - Full property ident (e.g. ":logseq.property/deadline")
      * @returns {Promise<Object|null>} Property schema or null if not found
      */
-    async getPropertySchema(graphName, propertyName) {
+    async getPropertySchemaByIdent(graphName, fullIdent) {
         try {
-            const safeName = propertyName.replace(/"/g, '\\"');
-            const query = `[:find (pull ?p [*])
-                            :where
-                            (or
-                              [?p :db/ident :user.property/${safeName}]
-                              [?p :db/ident :logseq.property/${safeName}])]`;
+            const queryIdent = fullIdent.startsWith(':') ? fullIdent : `:${fullIdent}`;
+            const query = `[:find (pull ?p [:db/cardinality :db/ident :block/title :logseq.property/type])
+                            :where [?p :db/ident ${queryIdent}]]`;
 
             const result = await this.executeQuery(graphName, query);
-            if (result.data.length > 0) {
-                const schema = result.data[0];
-                return {
-                    name: schema['block/title'] || schema[':block/title'] || schema['title'],
-                    ident: this._resolveIdent(schema['db/ident'] || schema[':db/ident'] || schema['ident']),
-                    valueType: this._resolveIdent(schema['db/valueType'] || schema[':db/valueType'] || schema['valueType']),
-                    cardinality: this._resolveIdent(schema['db/cardinality'] || schema[':db/cardinality'] || schema['cardinality'])
-                };
+            if (result.data.length === 0) return null;
+
+            const schema = result.data[0];
+            const logseqType = this._resolveIdent(
+                schema['logseq.property/type'] ||
+                schema[':logseq.property/type'] ||
+                schema['type']
+            );
+
+            // Map Logseq's :logseq.property/type to Datascript-style valueType.
+            // :date is a ref to a journal page; :datetime stores ms timestamps.
+            let valueType;
+            let isJournalDate = false;
+            switch (logseqType) {
+                case ':datetime':
+                    valueType = ':db.type/instant';
+                    break;
+                case ':date':
+                    valueType = ':db.type/ref';
+                    isJournalDate = true;
+                    break;
+                case ':checkbox':
+                    valueType = ':db.type/boolean';
+                    break;
+                case ':number':
+                case ':raw-number':
+                    valueType = ':db.type/number';
+                    break;
+                case ':node':
+                case ':page':
+                case ':entity':
+                case ':property':
+                    valueType = ':db.type/ref';
+                    break;
+                case ':default':
+                case ':url':
+                case ':keyword':
+                case ':string':
+                    valueType = ':db.type/string';
+                    break;
+                default:
+                    valueType = null; // unknown — caller falls back to sample-value inference
             }
-            return null;
+
+            return {
+                name: schema['block/title'] || schema[':block/title'] || schema['title'],
+                ident: this._resolveIdent(schema['db/ident'] || schema[':db/ident'] || schema['ident']),
+                valueType,
+                cardinality: this._resolveIdent(schema['db/cardinality'] || schema[':db/cardinality'] || schema['cardinality']),
+                logseqType,
+                isJournalDate
+            };
         } catch (error) {
-            console.error('Failed to get property schema:', error);
+            console.error('Failed to get property schema by ident:', error);
             return null;
         }
     }

@@ -1,8 +1,26 @@
 # Logseq DB Query Builder - Project Status
 
-## v0.4.5 (2026-02-13)
+## v0.6.2 (2026-05-20)
 
-**Current Version**: v0.4.5
+**Current Version**: v0.6.2
+
+### What's New in v0.6.2
+- **Task filter "Todo" matches Logseq UI semantics.** Task-tagged blocks with no explicit `:logseq.property/status` are now included when "Todo" is selected (Logseq treats these as implicit Todo via the property's `:default-value`).
+
+## v0.6.1 (2026-05-20)
+
+### What's New in v0.6.1
+- **Wrapped query uses human-readable Logseq input keywords.** Relative-date clauses in the wrapped query now use `?today`, `?-7d`, `?+14d`, `?start-of-today-ms`, `?-7d-start`, etc., with the matching keywords declared in `:inputs [:today :-7d ...]`. Easy to tweak by hand — change `?-7d` to `?-30d` to widen the window. Raw query (sent via API) still uses literals.
+
+## v0.6.0 (2026-05-20)
+
+### What's New in v0.6.0
+- **Between filter Absolute/Relative mode toggle**: Pick presets like "Last 7 days" or "Custom range" instead of two calendar dates. Works for `created-at`, `updated-at`, and `journal-day`.
+- **Property filter relative dates for date-typed properties**: `deadline`, `scheduled`, `projectdeadline`, and any user-defined `:date`/`:datetime` property now render the Absolute/Relative mode toggle alongside the date picker.
+- **Schema-by-ident discovery**: New `getPropertySchemaByIdent` API call queries `:logseq.property/type` directly — works for user properties with UUID suffixes (`:user.property/foo-abc123`) and properties with zero values set in the graph. Sample-value inference remains the fallback.
+- **Fixed pre-existing bug**: between filter absolute mode + `journal-day` was emitting millisecond comparisons against YYYYMMDD integers, silently returning zero results. Now uses local-time-correct `dateStringToYYYYMMDD` conversion.
+
+## v0.4.5 (2026-02-13)
 
 ### What's New in v0.4.5
 - Fix journal-date dropdowns stacking vertically instead of side-by-side
@@ -458,7 +476,7 @@ open index.html
 
 ---
 
-**Last Updated**: 2026-02-13
-**Version**: 0.4.5
+**Last Updated**: 2026-05-20
+**Version**: 0.6.2
 **Status**: Active Development
 **Maintainer**: P. Kerim Friedman

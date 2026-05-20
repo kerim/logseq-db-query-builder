@@ -11,13 +11,57 @@ class QueryGenerator {
      */
     static varCounter = 0;
 
+    // Substitutions collected during this generate() pass.
+    // Each entry: { literal, keyword, symbol }
+    //   literal — the computed number used in the raw (API-direct) query
+    //   keyword — Logseq input keyword (e.g. 'today', '-7d', '-7d-start')
+    //   symbol  — Datalog symbol for the wrapped query (e.g. '?today', '?-7d')
+    static relativeSubstitutions = [];
+
+    /**
+     * Tag a relative-date literal so it can be substituted later. Returns a
+     * placeholder token that survives string concatenation but gets rewritten
+     * into either the literal (for raw) or a symbol (for wrapped) at finalize.
+     */
+    static tagLiteral(literal, keyword) {
+        const idx = this.relativeSubstitutions.length;
+        this.relativeSubstitutions.push({ literal, keyword, symbol: '?' + keyword });
+        return `__LSQ_REL_${idx}__`;
+    }
+
+    /**
+     * Replace all tagged-literal placeholders with their literal values
+     * (used for the raw query sent directly via the HTTP API).
+     */
+    static materializeRaw(taggedStr) {
+        return taggedStr.replace(/__LSQ_REL_(\d+)__/g, (_, idx) =>
+            String(this.relativeSubstitutions[parseInt(idx, 10)].literal)
+        );
+    }
+
+    /**
+     * Replace tagged-literal placeholders with their symbol forms and return
+     * the deduplicated list of inputs needed for :in $ ... / :inputs [...].
+     */
+    static materializeWrapped(taggedStr) {
+        const wrapped = taggedStr.replace(/__LSQ_REL_(\d+)__/g, (_, idx) =>
+            this.relativeSubstitutions[parseInt(idx, 10)].symbol
+        );
+        const byKeyword = new Map();
+        for (const sub of this.relativeSubstitutions) {
+            if (!byKeyword.has(sub.keyword)) byKeyword.set(sub.keyword, sub);
+        }
+        return { wrapped, inputs: [...byKeyword.values()] };
+    }
+
     static generate(rootGroup) {
         if (!rootGroup || rootGroup.type !== 'group') {
             return null;
         }
 
-        // Reset variable counter for unique journal-date variable names
+        // Reset per-generation state
         this.varCounter = 0;
+        this.relativeSubstitutions = [];
 
         // Get all filters flattened for validation and entity detection
         const allFilters = this.flattenFilters(rootGroup);
@@ -40,53 +84,47 @@ class QueryGenerator {
         // Build :find clause
         const findClause = this.buildFindClause(entityVar);
 
-        // Build recursive where section from group tree (raw, with computed literals)
-        const whereSection = this.buildGroupClause(rootGroup, entityVar);
+        // Build recursive where section from group tree.
+        // Relative-date literals are emitted as __LSQ_REL_N__ placeholders
+        // that get materialized differently for raw vs. wrapped output.
+        const taggedWhere = this.buildGroupClause(rootGroup, entityVar);
 
-        if (!whereSection) {
+        if (!taggedWhere) {
             return null;
         }
 
-        // Build raw datalog query (for API)
+        // Materialize raw (literal values) for direct HTTP API execution
+        const rawWhere = this.materializeRaw(taggedWhere);
         const rawQuery = `[:find ${findClause}
  :where
- ${whereSection}]`;
+ ${rawWhere}]`;
 
-        // Re-indent where section for wrapped query: normalize all lines to 3-space indent
-        const wrappedWhereLines = whereSection.split('\n').map(line => {
+        // Re-indent for wrapped query
+        const indentedTagged = taggedWhere.split('\n').map(line => {
             const trimmed = line.trimStart();
             return trimmed.length > 0 ? '   ' + trimmed : '';
         }).join('\n');
 
-        // Build wrapped query (for Logseq)
-        // If relative date filters exist, replace today's literal with ?today variable
-        // and add :in $ ?today / :inputs [:today]
+        // Materialize wrapped (symbols + inputs) for portable Logseq /query blocks
+        const { wrapped: wrappedWhere, inputs } = this.materializeWrapped(indentedTagged);
+
         let wrappedQuery;
-        if (this.hasRelativeDateFilter(rootGroup)) {
-            const todayLiteral = String(this.computeYYYYMMDD(0));
-            const wrappedWhere = wrappedWhereLines.replaceAll(todayLiteral, '?today');
-            // Only add :inputs [:today] if the replacement actually occurred
-            if (wrappedWhere !== wrappedWhereLines) {
-                wrappedQuery = `{:query
+        if (inputs.length > 0) {
+            const inSymbols = inputs.map(i => i.symbol).join(' ');
+            const inputKeywords = inputs.map(i => `:${i.keyword}`).join(' ');
+            wrappedQuery = `{:query
  [:find ${findClause}
-  :in $ ?today
+  :in $ ${inSymbols}
   :where
 ${wrappedWhere}]
- :inputs [:today]}`;
-            } else {
-                wrappedQuery = `{:query
- [:find ${findClause}
-  :where
-${wrappedWhereLines}]}`;
-            }
+ :inputs [${inputKeywords}]}`;
         } else {
             wrappedQuery = `{:query
  [:find ${findClause}
   :where
-${wrappedWhereLines}]}`;
+${wrappedWhere}]}`;
         }
 
-        // Return both versions
         return {
             raw: rawQuery,
             wrapped: wrappedQuery
@@ -167,8 +205,10 @@ ${wrappedWhereLines}]}`;
                 return filter.value && filter.value.trim().length > 0;
             
             case 'property':
-                // Journal-date relative mode: no value needed for some presets
-                if (filter.dateMode === 'relative' && filter.propertySchema?.isJournalDate) {
+                // Relative mode for any date-typed property (journal-date refs or instant)
+                if (filter.dateMode === 'relative' &&
+                    (filter.propertySchema?.isJournalDate ||
+                     filter.propertySchema?.valueType === ':db.type/instant')) {
                     const hasName = filter.propertyName && filter.propertyName.trim().length > 0;
                     if (!hasName) return false;
                     const preset = filter.relativeDatePreset;
@@ -203,6 +243,20 @@ ${wrappedWhereLines}]}`;
                 return filter.value && filter.value.trim().length > 0;
             
             case 'between':
+                if (filter.betweenDateMode === 'relative') {
+                    const preset = filter.relativeDatePreset;
+                    if (!preset) return false;
+                    if (preset === 'after-today' || preset === 'before-today' || preset === 'today') {
+                        return true;
+                    }
+                    if (preset === 'last-n-days' || preset === 'next-n-days') {
+                        return filter.relativeDateDays > 0;
+                    }
+                    if (preset === 'range') {
+                        return filter.relativeDateStart != null && filter.relativeDateEnd != null;
+                    }
+                    return false;
+                }
                 return filter.startDate && filter.endDate;
             
             default:
@@ -358,6 +412,12 @@ ${wrappedWhereLines}]}`;
                 return this.buildJournalDateClause(entityVar, propIdent, filter);
             }
 
+            // Instant property in relative mode: literal-ms window
+            if (propertySchema.valueType === ':db.type/instant' && filter.dateMode === 'relative') {
+                const idx = this.varCounter++;
+                return this.buildInstantPropertyRelativeClause(entityVar, propIdent, filter, idx);
+            }
+
             switch (propertySchema.valueType) {
                 case ':db.type/boolean':
                     return this.buildBooleanPropertyClause(entityVar, propIdent, value);
@@ -453,6 +513,76 @@ ${wrappedWhereLines}]}`;
     }
 
     /**
+     * Compute Unix ms timestamp for a date offset from now.
+     * Returns the start-of-day in local time (midnight) for stable day-aligned windows.
+     */
+    static computeOffsetMs(offsetDays) {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() + offsetDays);
+        return d.getTime();
+    }
+
+    /**
+     * Build the ms comparison clauses for a relative-date preset.
+     * Pure: does not touch this.varCounter. Caller supplies the timestamp-var name.
+     * Returns the comparison clauses only (not the base pattern).
+     * Comparison values are tagged ONLY when used (so unused inputs don't leak
+     * into :in / :inputs).
+     */
+    static buildRelativeMsComparisons(filter, tsVar) {
+        const todayStart = () => this.tagLiteral(this.computeOffsetMs(0), 'start-of-today-ms');
+        const tomorrowStart = () => this.tagLiteral(this.computeOffsetMs(1), '+1d-start');
+
+        switch (filter.relativeDatePreset) {
+            case 'after-today':
+                return `[(>= ${tsVar} ${tomorrowStart()})]`;
+            case 'before-today':
+                return `[(< ${tsVar} ${todayStart()})]`;
+            case 'today':
+                return `[(>= ${tsVar} ${todayStart()})]\n [(< ${tsVar} ${tomorrowStart()})]`;
+            case 'last-n-days': {
+                const start = this.tagLiteral(
+                    this.computeOffsetMs(-filter.relativeDateDays),
+                    `-${filter.relativeDateDays}d-start`
+                );
+                return `[(>= ${tsVar} ${start})]\n [(< ${tsVar} ${tomorrowStart()})]`;
+            }
+            case 'next-n-days': {
+                const end = this.tagLiteral(
+                    this.computeOffsetMs(filter.relativeDateDays + 1),
+                    `+${filter.relativeDateDays + 1}d-start`
+                );
+                return `[(>= ${tsVar} ${todayStart()})]\n [(< ${tsVar} ${end})]`;
+            }
+            case 'range': {
+                const rangeStart = this.tagLiteral(
+                    this.computeOffsetMs(-filter.relativeDateStart),
+                    `-${filter.relativeDateStart}d-start`
+                );
+                const rangeEnd = this.tagLiteral(
+                    this.computeOffsetMs(filter.relativeDateEnd + 1),
+                    `+${filter.relativeDateEnd + 1}d-start`
+                );
+                return `[(>= ${tsVar} ${rangeStart})]\n [(< ${tsVar} ${rangeEnd})]`;
+            }
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Build relative-mode clause for a :db.type/instant property.
+     * Wraps buildRelativeMsComparisons with the base pattern.
+     */
+    static buildInstantPropertyRelativeClause(entityVar, propIdent, filter, idx) {
+        const tsVar = `?ts${idx}`;
+        const comparisons = this.buildRelativeMsComparisons(filter, tsVar);
+        if (comparisons === null) return null;
+        return `[${entityVar} ${propIdent} ${tsVar}]\n ${comparisons}`;
+    }
+
+    /**
      * Build page reference clause
      */
     static buildPageReferenceClause(filter, entityVar) {
@@ -504,16 +634,38 @@ ${wrappedWhereLines}]}`;
   ${branches.join('\n  ')})`);
         }
 
-        // Add status filter
+        // Add status filter.
+        // Logseq treats Task-tagged blocks with no explicit :logseq.property/status
+        // as having the default status "Todo" (see :logseq.property/default-value
+        // on :logseq.property/status). When "Todo" is in the selection, OR-in the
+        // no-status branch so the results match what Logseq's task views show.
+        const includesTodo = escapedValues.includes('Todo');
+        const noStatusBranch = `(not-join [${entityVar}] [${entityVar} :logseq.property/status _])`;
+
+        let explicitStatusClause;
         if (escapedValues.length === 1) {
-            // Single status
-            clauses.push(`[${entityVar} :logseq.property/status ?status]
- [?status :block/title "${escapedValues[0]}"]`);
+            explicitStatusClause = `(and [${entityVar} :logseq.property/status ?status]
+       [?status :block/title "${escapedValues[0]}"])`;
         } else {
-            // Multiple statuses - use OR
-            const orClauses = escapedValues.map(v => `[?status :block/title "${v}"]`).join('\n ');
-            clauses.push(`[${entityVar} :logseq.property/status ?status]
+            const orClauses = escapedValues.map(v => `[?status :block/title "${v}"]`).join('\n           ');
+            explicitStatusClause = `(and [${entityVar} :logseq.property/status ?status]
+       (or ${orClauses}))`;
+        }
+
+        if (includesTodo) {
+            clauses.push(`(or-join [${entityVar}]
+  ${explicitStatusClause}
+  ${noStatusBranch})`);
+        } else {
+            // Strip the (and ...) wrapper for the no-Todo case (preserves prior output shape)
+            if (escapedValues.length === 1) {
+                clauses.push(`[${entityVar} :logseq.property/status ?status]
+ [?status :block/title "${escapedValues[0]}"]`);
+            } else {
+                const orClauses = escapedValues.map(v => `[?status :block/title "${v}"]`).join('\n ');
+                clauses.push(`[${entityVar} :logseq.property/status ?status]
  (or ${orClauses})`);
+            }
         }
 
         return clauses.join('\n ');
@@ -540,20 +692,57 @@ ${wrappedWhereLines}]}`;
     }
 
     /**
-     * Build date range clause
+     * Convert "YYYY-MM-DD" (from <input type="date">) to YYYYMMDD integer
+     * using local-time parsing. new Date("YYYY-MM-DD") parses as UTC midnight,
+     * which yields the previous day's date in negative-UTC-offset timezones.
+     */
+    static dateStringToYYYYMMDD(dateStr) {
+        const [y, m, d] = dateStr.split('-').map(n => parseInt(n, 10));
+        return y * 10000 + m * 100 + d;
+    }
+
+    /**
+     * Build date range clause. Supports both absolute (mm/dd/yyyy pickers)
+     * and relative (preset like "last 7 days") modes, across three date
+     * properties: created-at, updated-at, journal-day.
      */
     static buildBetweenClause(filter, entityVar) {
-        const { startDate, endDate, dateProperty = 'created-at' } = filter;
-        
-        // Convert dates to Unix timestamps (milliseconds)
+        const { startDate, endDate, dateProperty = 'created-at', betweenDateMode = 'absolute' } = filter;
+        const property = `:block/${dateProperty}`;
+        const idx = this.varCounter++;
+
+        if (betweenDateMode === 'relative') {
+            if (dateProperty === 'journal-day') {
+                const dayVar = `?jd${idx}`;
+                const comparisons = this.buildRelativeDayComparisons(filter, dayVar);
+                if (comparisons === null) return null;
+                return `[${entityVar} ${property} ${dayVar}]\n ${comparisons}`;
+            }
+            // created-at / updated-at: ms values are tagged so the wrapped query
+            // can substitute them with Logseq input keywords (:start-of-today-ms,
+            // :-7d-start, :+1d-start, etc.). The window slides on every regen.
+            const tsVar = `?ts${idx}`;
+            const comparisons = this.buildRelativeMsComparisons(filter, tsVar);
+            if (comparisons === null) return null;
+            return `[${entityVar} ${property} ${tsVar}]\n ${comparisons}`;
+        }
+
+        // Absolute mode
+        if (dateProperty === 'journal-day') {
+            // :block/journal-day stores YYYYMMDD integers, not ms timestamps
+            const start = this.dateStringToYYYYMMDD(startDate);
+            const end = this.dateStringToYYYYMMDD(endDate);
+            return `[${entityVar} ${property} ?date${idx}]
+ [(>= ?date${idx} ${start})]
+ [(<= ?date${idx} ${end})]`;
+        }
+
+        // created-at / updated-at are stored as Unix milliseconds
         const startTimestamp = new Date(startDate).getTime();
         const endTimestamp = new Date(endDate).getTime();
-        
-        const property = `:block/${dateProperty}`;
-        
-        return `[${entityVar} ${property} ?date]
- [(>= ?date ${startTimestamp})]
- [(<= ?date ${endTimestamp})]`;
+        return `[${entityVar} ${property} ?date${idx}]
+ [(>= ?date${idx} ${startTimestamp})]
+ [(<= ?date${idx} ${endTimestamp})]`;
     }
 
     /**
@@ -607,62 +796,66 @@ ${wrappedWhereLines}]}`;
     }
 
     /**
-     * Build journal-date clause for relative date filtering
-     * Uses :block/journal-day on the referenced journal page
+     * Build the YYYYMMDD comparison clauses for a relative-date preset.
+     * Pure: does not touch this.varCounter. Caller supplies the day-var name.
+     * Returns the comparison clauses only (not the base pattern).
+     * Comparison values are tagged so the wrapped query can substitute them
+     * with Logseq input keywords (:today, :-7d, :+30d, etc.).
+     */
+    static buildRelativeDayComparisons(filter, dayVar) {
+        const today = () => this.tagLiteral(this.computeYYYYMMDD(0), 'today');
+
+        switch (filter.relativeDatePreset) {
+            case 'after-today':
+                return `[(> ${dayVar} ${today()})]`;
+            case 'before-today':
+                return `[(< ${dayVar} ${today()})]`;
+            case 'today':
+                return `[(= ${dayVar} ${today()})]`;
+            case 'last-n-days': {
+                const start = this.tagLiteral(
+                    this.computeYYYYMMDD(-filter.relativeDateDays),
+                    `-${filter.relativeDateDays}d`
+                );
+                return `[(>= ${dayVar} ${start})]\n [(<= ${dayVar} ${today()})]`;
+            }
+            case 'next-n-days': {
+                const end = this.tagLiteral(
+                    this.computeYYYYMMDD(filter.relativeDateDays),
+                    `+${filter.relativeDateDays}d`
+                );
+                return `[(>= ${dayVar} ${today()})]\n [(<= ${dayVar} ${end})]`;
+            }
+            case 'range': {
+                const rangeStart = this.tagLiteral(
+                    this.computeYYYYMMDD(-filter.relativeDateStart),
+                    `-${filter.relativeDateStart}d`
+                );
+                const rangeEnd = this.tagLiteral(
+                    this.computeYYYYMMDD(filter.relativeDateEnd),
+                    `+${filter.relativeDateEnd}d`
+                );
+                return `[(>= ${dayVar} ${rangeStart})]\n [(<= ${dayVar} ${rangeEnd})]`;
+            }
+            default:
+                return null;
+        }
+    }
+
+    /**
+     * Build journal-date clause for relative date filtering on a property.
+     * Pattern: entity → property → journal page → :block/journal-day → comparisons.
      */
     static buildJournalDateClause(entityVar, propIdent, filter) {
         const idx = this.varCounter++;
         const refVar = `?jdref${idx}`;
         const dayVar = `?jd${idx}`;
 
-        // Base pattern: entity has property referencing a journal page
         const basePattern = `[${entityVar} ${propIdent} ${refVar}]\n [${refVar} :block/journal-day ${dayVar}]`;
-
-        const today = this.computeYYYYMMDD(0);
-        let comparisons;
-
-        switch (filter.relativeDatePreset) {
-            case 'after-today':
-                comparisons = `[(> ${dayVar} ${today})]`;
-                break;
-            case 'before-today':
-                comparisons = `[(< ${dayVar} ${today})]`;
-                break;
-            case 'today':
-                comparisons = `[(= ${dayVar} ${today})]`;
-                break;
-            case 'last-n-days': {
-                const start = this.computeYYYYMMDD(-filter.relativeDateDays);
-                comparisons = `[(>= ${dayVar} ${start})]\n [(<= ${dayVar} ${today})]`;
-                break;
-            }
-            case 'next-n-days': {
-                const end = this.computeYYYYMMDD(filter.relativeDateDays);
-                comparisons = `[(>= ${dayVar} ${today})]\n [(<= ${dayVar} ${end})]`;
-                break;
-            }
-            case 'range': {
-                const rangeStart = this.computeYYYYMMDD(-filter.relativeDateStart);
-                const rangeEnd = this.computeYYYYMMDD(filter.relativeDateEnd);
-                comparisons = `[(>= ${dayVar} ${rangeStart})]\n [(<= ${dayVar} ${rangeEnd})]`;
-                break;
-            }
-            default:
-                return null;
-        }
+        const comparisons = this.buildRelativeDayComparisons(filter, dayVar);
+        if (comparisons === null) return null;
 
         return `${basePattern}\n ${comparisons}`;
-    }
-
-    /**
-     * Check if any filter in the tree uses relative journal-date mode
-     */
-    static hasRelativeDateFilter(node) {
-        if (!node) return false;
-        if (node.type === 'group' && node.children) {
-            return node.children.some(child => this.hasRelativeDateFilter(child));
-        }
-        return node.dateMode === 'relative' && node.propertySchema?.isJournalDate;
     }
 
     /**

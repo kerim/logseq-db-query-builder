@@ -167,6 +167,9 @@ When using the online version (HTTPS), your browser may block requests to the lo
 
 ## Version History
 
+- **v0.6.2** - Task filter "Todo" now also matches Task-tagged blocks with no explicit status (matches Logseq's task-UI semantics)
+- **v0.6.1** - Wrapped query uses Logseq input keywords (`?-7d`, `?today`, `?+1d-start`, etc.) instead of raw timestamps — easy to edit by hand
+- **v0.6.0** - Relative-date support for "between" filter and date-typed properties (deadline, scheduled, projectdeadline); fix absolute journal-day range returning zero results
 - **v0.5.0** - Disconnect button, HTTPS/browser detection for local network access
 - **v0.4.5** - Fix journal-date dropdowns layout (side-by-side instead of stacked)
 - **v0.4.4** - Fix autocomplete on GitHub Pages (cache-busting for JS/CSS)
