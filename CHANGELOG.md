@@ -5,6 +5,20 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-05-22
+
+### Added
+- **Page-reference filter scope selector — three modes.** Replaces the inert "Include extensions" checkbox on the page-reference filter with a three-mode selector:
+  - **parent only** (default) — match the named page exactly (existing behavior)
+  - **parent + extensions** — match the named page OR any descendant via `:block/parent` (so a reference to `chapter 1` counts as a reference to `course a` when `chapter 1`'s parent chain reaches `course a`)
+  - **extensions only** — match descendants only, excluding direct references to the parent
+  The walk uses Logseq's built-in recursive `parent` rule (`:logseq.db.frontend.rules`) for arbitrary-depth namespace traversal — no hard-coded depth limit. The wrapped (paste-into-`/Advanced Query`) form relies on Logseq's `add-rules-to-query` to inject the rule automatically; the HTTP API path now passes the rule vector explicitly as the second arg to `datascript_query`.
+
+### Changed
+- `api.executeQuery` accepts an optional third `rules` argument (EDN string) and forwards it to the API call.
+- `QueryGenerator.generate()` returns an additional `rules` field on its result object (null when the parent rule isn't used). `app.js` stashes and forwards this to `api.executeQuery`.
+- All page-reference clauses now use per-clause variable suffixes (`?ref0`, `?ref1`, …) generated via the existing `varCounter`, fixing a latent variable-unification bug that broke queries with multiple page-reference filters in the same AND group. Output is semantically identical for single-filter queries; the variable name in copy-pasted reference queries changes from `?ref` to `?ref0`.
+
 ## [0.6.2] - 2026-05-20
 
 ### Fixed

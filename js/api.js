@@ -130,12 +130,18 @@ class LogseqAPI {
      * Execute a Datalog query
      * @param {string} graphName - Ignored (built-in API uses current graph)
      * @param {string} query - Datalog query string
+     * @param {string} [rules] - Optional EDN string for a Datalog rules vector.
+     *                            Passed as the second arg to datascriptQuery.
+     *                            Logseq's datascript_query handler runs
+     *                            cljs.reader/read-string on string inputs,
+     *                            so the EDN serializes correctly.
      * @returns {Object} {success, data} matching existing caller expectations
      */
-    async executeQuery(graphName, query) {
+    async executeQuery(graphName, query, rules = null) {
         try {
             const apiQuery = query.trim();
-            const results = await this._callAPI('logseq.DB.datascriptQuery', [apiQuery]);
+            const args = rules ? [apiQuery, rules] : [apiQuery];
+            const results = await this._callAPI('logseq.DB.datascriptQuery', args);
 
             // Flatten single-element tuples: [[{entity}], ...] → [{entity}, ...]
             let data = [];

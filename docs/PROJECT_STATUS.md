@@ -1,8 +1,18 @@
 # Logseq DB Query Builder - Project Status
 
-## v0.6.2 (2026-05-20)
+## v0.7.0 (2026-05-22)
 
-**Current Version**: v0.6.2
+**Current Version**: v0.7.0
+
+### What's New in v0.7.0
+- **Page-reference filter scope selector.** Replaces the inert "Include extensions" checkbox on page-reference filters with a three-mode selector:
+  - **parent only** (default, current behavior) — match the named page exactly
+  - **parent + extensions** — match the page OR any descendant via the `:block/parent` chain
+  - **extensions only** — match descendants only, excluding the named page
+  Uses Logseq's built-in recursive `parent` rule, so the walk is unbounded by depth.
+- **Variable-collision fix in page-reference clauses.** Multiple page-reference filters in the same AND group now bind independent `?ref0`, `?ref1`, etc. variables — previously they all bound to `?ref` and silently returned zero results.
+
+## v0.6.2 (2026-05-20)
 
 ### What's New in v0.6.2
 - **Task filter "Todo" matches Logseq UI semantics.** Task-tagged blocks with no explicit `:logseq.property/status` are now included when "Todo" is selected (Logseq treats these as implicit Todo via the property's `:default-value`).
@@ -476,7 +486,7 @@ open index.html
 
 ---
 
-**Last Updated**: 2026-05-20
-**Version**: 0.6.2
+**Last Updated**: 2026-05-22
+**Version**: 0.7.0
 **Status**: Active Development
 **Maintainer**: P. Kerim Friedman

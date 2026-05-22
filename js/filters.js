@@ -314,8 +314,37 @@ class FilterManager {
                     });
                     container.appendChild(autocompleteInput);
 
-                    // Add "Include extensions" checkbox for tags and page-reference filters
-                    if (filter.type === 'tags' || filter.type === 'page-reference') {
+                    // Page-reference: tri-state scope selector walking :block/parent
+                    // via Logseq's built-in recursive `parent` rule.
+                    if (filter.type === 'page-reference') {
+                        const scopeWrapper = document.createElement('div');
+                        scopeWrapper.className = 'extensions-checkbox-wrapper';
+
+                        const scopeSelect = document.createElement('select');
+                        scopeSelect.className = 'filter-input page-ref-scope';
+                        const scopeOptions = [
+                            { value: 'parent', label: 'parent only' },
+                            { value: 'parent+ext', label: 'parent + extensions' },
+                            { value: 'ext-only', label: 'extensions only' }
+                        ];
+                        for (const opt of scopeOptions) {
+                            const optEl = document.createElement('option');
+                            optEl.value = opt.value;
+                            optEl.textContent = opt.label;
+                            scopeSelect.appendChild(optEl);
+                        }
+                        scopeSelect.value = filter.scope || 'parent';
+                        scopeSelect.addEventListener('change', (e) => {
+                            filter.scope = e.target.value;
+                            this.notifyChange();
+                        });
+                        scopeWrapper.appendChild(scopeSelect);
+                        container.appendChild(scopeWrapper);
+                    }
+
+                    // Tags filter keeps its existing two-state "Include extensions" checkbox
+                    // (governed by :logseq.property.class/extends, different semantics from page hierarchy).
+                    if (filter.type === 'tags') {
                         const extensionsWrapper = document.createElement('div');
                         extensionsWrapper.className = 'extensions-checkbox-wrapper';
 

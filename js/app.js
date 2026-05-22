@@ -478,12 +478,14 @@ class App {
         if (queryObj) {
             this.state.generatedQuery = queryObj.raw;  // Use raw for API
             this.state.wrappedQuery = queryObj.wrapped; // Use wrapped for display/copy
+            this.state.queryRules = queryObj.rules;     // EDN string when parent rule is used; null otherwise
 
             const queryOutput = document.getElementById('query-output');
             queryOutput.textContent = queryObj.wrapped;  // Display wrapped version
         } else {
             this.state.generatedQuery = null;
             this.state.wrappedQuery = null;
+            this.state.queryRules = null;
             const queryOutput = document.getElementById('query-output');
             queryOutput.textContent = 'No valid filters. Add filters to generate a query.';
         }
@@ -509,7 +511,7 @@ class App {
         this.hideError();
 
         try {
-            const result = await this.api.executeQuery(this.state.graph, this.state.generatedQuery);
+            const result = await this.api.executeQuery(this.state.graph, this.state.generatedQuery, this.state.queryRules);
 
             console.log('API result:', result);
 

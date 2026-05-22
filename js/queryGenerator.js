@@ -3,6 +3,8 @@
  * Supports recursive group structures with AND/OR/NOT logic
  */
 
+const PARENT_RULE_VECTOR = '[[(parent ?p ?c) [?c :block/parent ?p]] [(parent ?p ?c) [?t :block/parent ?p] (parent ?t ?c)]]';
+
 class QueryGenerator {
     /**
      * Generate Datalog query from root group (tree structure)
@@ -62,6 +64,7 @@ class QueryGenerator {
         // Reset per-generation state
         this.varCounter = 0;
         this.relativeSubstitutions = [];
+        this.usesParentRule = false;
 
         // Get all filters flattened for validation and entity detection
         const allFilters = this.flattenFilters(rootGroup);
@@ -93,9 +96,13 @@ class QueryGenerator {
             return null;
         }
 
-        // Materialize raw (literal values) for direct HTTP API execution
+        // Materialize raw (literal values) for direct HTTP API execution.
+        // Raw never carries date symbols (dates are baked in as numbers by
+        // materializeRaw), so the only :in clause raw ever needs is :in $ %
+        // — and only when the parent rule is referenced.
         const rawWhere = this.materializeRaw(taggedWhere);
-        const rawQuery = `[:find ${findClause}
+        const rawIn = this.usesParentRule ? '\n :in $ %' : '';
+        const rawQuery = `[:find ${findClause}${rawIn}
  :where
  ${rawWhere}]`;
 
@@ -105,8 +112,13 @@ class QueryGenerator {
             return trimmed.length > 0 ? '   ' + trimmed : '';
         }).join('\n');
 
-        // Materialize wrapped (symbols + inputs) for portable Logseq /query blocks
+        // Materialize wrapped (symbols + inputs) for portable Logseq /query blocks.
+        // When usesParentRule is true we append '%' to :in; Logseq's
+        // add-rules-to-query auto-injects the rule definitions because
+        // (parent ...) appears in :where, so we do NOT add the rule vector
+        // to :inputs.
         const { wrapped: wrappedWhere, inputs } = this.materializeWrapped(indentedTagged);
+        const ruleMark = this.usesParentRule ? ' %' : '';
 
         let wrappedQuery;
         if (inputs.length > 0) {
@@ -114,10 +126,16 @@ class QueryGenerator {
             const inputKeywords = inputs.map(i => `:${i.keyword}`).join(' ');
             wrappedQuery = `{:query
  [:find ${findClause}
-  :in $ ${inSymbols}
+  :in $ ${inSymbols}${ruleMark}
   :where
 ${wrappedWhere}]
  :inputs [${inputKeywords}]}`;
+        } else if (this.usesParentRule) {
+            wrappedQuery = `{:query
+ [:find ${findClause}
+  :in $ %
+  :where
+${wrappedWhere}]}`;
         } else {
             wrappedQuery = `{:query
  [:find ${findClause}
@@ -127,7 +145,8 @@ ${wrappedWhere}]}`;
 
         return {
             raw: rawQuery,
-            wrapped: wrappedQuery
+            wrapped: wrappedQuery,
+            rules: this.usesParentRule ? PARENT_RULE_VECTOR : null
         };
     }
 
@@ -583,12 +602,38 @@ ${wrappedWhere}]}`;
     }
 
     /**
-     * Build page reference clause
+     * Build page reference clause. Three scope modes:
+     *   'parent' — match the named page only (default, existing behavior)
+     *   'parent+ext' — match the named page OR any descendant via :block/parent
+     *   'ext-only' — match only descendants, excluding the named page itself
+     * The two extension modes use Logseq's built-in recursive `parent` rule.
      */
     static buildPageReferenceClause(filter, entityVar) {
         const escapedValue = this.escapeString(filter.value);
-        return `[${entityVar} :block/refs ?ref]
- [?ref :block/name "${escapedValue}"]`;
+        const scope = filter.scope || 'parent';
+        const idx = this.varCounter++;
+        const refVar = `?ref${idx}`;
+
+        if (scope === 'parent') {
+            return `[${entityVar} :block/refs ${refVar}]
+ [${refVar} :block/name "${escapedValue}"]`;
+        }
+
+        this.usesParentRule = true;
+        const targetVar = `?target${idx}`;
+
+        if (scope === 'ext-only') {
+            return `[${entityVar} :block/refs ${refVar}]
+ [${targetVar} :block/name "${escapedValue}"]
+ (parent ${targetVar} ${refVar})`;
+        }
+
+        // 'parent+ext'
+        return `[${entityVar} :block/refs ${refVar}]
+ [${targetVar} :block/name "${escapedValue}"]
+ (or-join [${refVar} ${targetVar}]
+   [(= ${refVar} ${targetVar})]
+   (parent ${targetVar} ${refVar}))`;
     }
 
     /**
