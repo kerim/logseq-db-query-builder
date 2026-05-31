@@ -38,3 +38,7 @@ tests/
 *.swp
 *.swo
 *~
+
+# MCP / tooling
+.mcp.json
+.playwright-mcp/
