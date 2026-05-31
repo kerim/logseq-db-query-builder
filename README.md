@@ -169,6 +169,9 @@ When using the online version (HTTPS), your browser may block requests to the lo
 
 ## Version History
 
+- **v0.7.6** - UX: ref-type property value inputs now have inline autocomplete (filtered from known values as you type)
+- **v0.7.5** - UX: ref-type property values now use a text input with a 25-item comma-separated hint list instead of an unwieldy dropdown or checkbox list
+- **v0.7.4** - Fix: built-in block-namespace properties (alias, tags, refs, etc.) now appear in the property dropdown with correct schema/type detection; internal system properties hidden
 - **v0.7.0** - Page-reference filter gains a three-mode scope selector (parent only / parent + extensions / extensions only), walking the `:block/parent` chain via Logseq's recursive `parent` rule
 - **v0.6.2** - Task filter "Todo" now also matches Task-tagged blocks with no explicit status (matches Logseq's task-UI semantics)
 - **v0.6.1** - Wrapped query uses Logseq input keywords (`?-7d`, `?today`, `?+1d-start`, etc.) instead of raw timestamps — easy to edit by hand

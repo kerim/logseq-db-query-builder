@@ -5,6 +5,37 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.6] - 2026-06-01
+
+### Added
+- **Autocomplete for ref-type property value inputs.** As you type into the new text input, matching known values appear in a dropdown (up to 10, filtered client-side from the already-fetched value list). Selecting an item fills the input without an extra API call.
+
+## [0.7.5] - 2026-06-01
+
+### Changed
+- **Ref-type property values now use a text input instead of a dropdown or checkbox list.** A comma-separated hint showing the first 25 known values appears below the input for reference. This fixes the "Alias" property (and any other open-ended ref property) rendering an impractically large list of checkboxes.
+
+## [0.7.4] - 2026-06-01
+
+### Fixed
+- **Property schema type unrecognized for built-in properties.** The `getPropertySchemaByIdent` switch matched colon-prefixed type strings (`':page'`, `':number'`) but the HTTP API returns bare strings (`'page'`, `'number'`), causing `valueType: null` and fallback to text input. Added bare-string cases for all type variants.
+
+## [0.7.3] - 2026-06-01
+
+### Fixed
+- **"Alias" (and other built-in block-namespace properties) missing from property dropdown.** Two-part fix: (1) replaced the old value-scan query with a bounded property-definition query that enumerates all 232 property entities tagged `:logseq.class/Property`; (2) the Logseq HTTP API strips the `block/` namespace from built-in property idents (returning `"alias"` instead of `":block/alias"`), so the returned ident is now reconstructed as `:block/<name>` when no `/` is present. Properties whose ident already includes a namespace (`logseq.*`, `user.*`) are unaffected.
+- Internal/system properties (marked `:logseq.property/public? false` by Logseq) are filtered out of the dropdown.
+
+## [0.7.2] - 2026-06-01
+
+### Changed
+- Diagnostic release (debug logging); superseded by 0.7.3.
+
+## [0.7.1] - 2026-06-01
+
+### Changed
+- Intermediate release; superseded by 0.7.3.
+
 ## [0.7.0] - 2026-05-22
 
 ### Added

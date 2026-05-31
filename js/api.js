@@ -235,33 +235,41 @@ class LogseqAPI {
      */
     async getProperties(graphName, searchTerm = '') {
         try {
-            const query = `[:find ?prop
+            const query = `[:find (pull ?p [:db/ident :block/title :logseq.property/public?])
                             :where
-                            [?b ?prop ?v]
-                            [(namespace ?prop)]]`;
+                            [?p :block/tags ?t]
+                            [?t :db/ident :logseq.class/Property]]`;
 
             const result = await this.executeQuery(graphName, query);
 
+            if (!result.data || result.data.length === 0) {
+                console.warn('getProperties: no property definitions found — has the :logseq.class/Property ident changed?');
+                return [];
+            }
+
+            const term = searchTerm.toLowerCase();
             const propsMap = new Map();
             result.data.forEach(item => {
-                const prop = item;
-                if (prop) {
-                    const parts = prop.split('/');
-                    if (parts.length === 2) {
-                        const namespace = parts[0].replace(':', '');
-                        let propName = parts[1];
-                        const cleanName = propName.replace(/-[A-Za-z0-9_]+$/, '');
+                let ident = item['db/ident'] || item[':db/ident'] || item['ident'];
+                const title = item['block/title'] || item[':block/title'] || item['title'];
 
-                        if (!searchTerm || cleanName.toLowerCase().includes(searchTerm.toLowerCase())) {
-                            if (!propsMap.has(cleanName)) {
-                                propsMap.set(cleanName, {
-                                    title: cleanName,
-                                    ident: prop,
-                                    namespace: namespace
-                                });
-                            }
-                        }
-                    }
+                if (item['logseq.property/public?'] === false) return;
+                if (!ident || !title) return;
+                if (term && !title.toLowerCase().includes(term)) return;
+
+                // The HTTP API strips the block/ namespace from built-in property idents,
+                // returning e.g. "alias" instead of ":block/alias". Reconstruct it.
+                const identStr = String(ident);
+                if (!identStr.includes('/')) {
+                    ident = `:block/${ident}`;
+                } else if (!identStr.startsWith(':')) {
+                    ident = `:${ident}`;
+                }
+
+                const namespace = ident.split('/')[0].replace(':', '');
+                const existing = propsMap.get(title);
+                if (!existing || (namespace === 'user.property' && existing.namespace !== 'user.property')) {
+                    propsMap.set(title, { title, ident, namespace });
                 }
             });
 
@@ -310,29 +318,42 @@ class LogseqAPI {
             let isJournalDate = false;
             switch (logseqType) {
                 case ':datetime':
+                case 'datetime':
                     valueType = ':db.type/instant';
                     break;
                 case ':date':
+                case 'date':
                     valueType = ':db.type/ref';
                     isJournalDate = true;
                     break;
                 case ':checkbox':
+                case 'checkbox':
                     valueType = ':db.type/boolean';
                     break;
                 case ':number':
                 case ':raw-number':
+                case 'number':
+                case 'raw-number':
                     valueType = ':db.type/number';
                     break;
                 case ':node':
                 case ':page':
                 case ':entity':
                 case ':property':
+                case 'node':
+                case 'page':
+                case 'entity':
+                case 'property':
                     valueType = ':db.type/ref';
                     break;
                 case ':default':
                 case ':url':
                 case ':keyword':
                 case ':string':
+                case 'default':
+                case 'url':
+                case 'keyword':
+                case 'string':
                     valueType = ':db.type/string';
                     break;
                 default:

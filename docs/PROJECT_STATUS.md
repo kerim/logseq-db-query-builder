@@ -1,10 +1,18 @@
 # Logseq DB Query Builder - Project Status
 
-## v0.7.0 (2026-05-22)
+## v0.7.5 (2026-06-01)
 
-**Current Version**: v0.7.0
+**Current Version**: v0.7.5
 
-### What's New in v0.7.0
+### What's New in v0.7.5
+
+- **UX: ref-type property values use text input with hint list.** Instead of a dropdown or checkbox list (which was unwieldy for open-ended properties like Alias), ref properties now render a text input. A comma-separated list of the first 25 known values appears below as a reference hint.
+
+### What's in v0.7.4
+
+- **Fix: built-in block-namespace properties now appear in dropdown.** The property autocomplete now uses a definition-based query, surfacing `:block/*` built-ins (alias, tags, refs, etc.) that the old value-scan silently omitted. Additionally, the Logseq HTTP API strips the `block/` namespace from these idents (returning `"alias"` instead of `":block/alias"`), so the ident is now reconstructed on the client. Internal/system properties (`public? = false`) are filtered out.
+
+### What's in v0.7.0
 - **Page-reference filter scope selector.** Replaces the inert "Include extensions" checkbox on page-reference filters with a three-mode selector:
   - **parent only** (default, current behavior) — match the named page exactly
   - **parent + extensions** — match the page OR any descendant via the `:block/parent` chain
@@ -486,7 +494,7 @@ open index.html
 
 ---
 
-**Last Updated**: 2026-05-22
-**Version**: 0.7.0
+**Last Updated**: 2026-06-01
+**Version**: 0.7.5
 **Status**: Active Development
 **Maintainer**: P. Kerim Friedman

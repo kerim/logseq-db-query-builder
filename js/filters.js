@@ -797,7 +797,8 @@ class FilterManager {
     }
 
     /**
-     * Render reference property input (dropdown for single, checkboxes for multi)
+     * Render reference property input — text input with a comma-separated
+     * hint list of the first 25 known values for reference.
      */
     async renderReferenceInput(filter, container, schema) {
         const wrapper = document.createElement('div');
@@ -809,66 +810,69 @@ class FilterManager {
             filter.propertySchema.ident
         );
 
-        if (schema.cardinality === ':db.cardinality/one') {
-            // Single value - dropdown
-            const select = document.createElement('select');
-            select.className = 'filter-input';
+        // Normalise stored value: old checkbox UI stored arrays, text input uses strings
+        if (Array.isArray(filter.value)) {
+            filter.value = filter.value[0] || '';
+        }
 
-            const emptyOption = document.createElement('option');
-            emptyOption.value = '';
-            emptyOption.textContent = 'Select value...';
-            select.appendChild(emptyOption);
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'filter-input';
+        input.placeholder = 'Type a value…';
+        input.value = filter.value || '';
 
-            values.forEach(val => {
-                const option = document.createElement('option');
-                option.value = val.title;
-                option.textContent = val.title;
-                if (filter.value === val.title) {
-                    option.selected = true;
-                }
-                select.appendChild(option);
-            });
+        // Inline autocomplete dropdown
+        const dropdown = document.createElement('div');
+        dropdown.className = 'ref-value-autocomplete';
 
-            select.addEventListener('change', (e) => {
-                filter.value = e.target.value;
-                this.notifyChange();
-            });
-
-            wrapper.appendChild(select);
-        } else {
-            // Multiple values - checkboxes
-            const checkboxGroup = document.createElement('div');
-            checkboxGroup.className = 'checkbox-group';
-
-            if (!filter.value) filter.value = [];
-            if (!Array.isArray(filter.value)) filter.value = [filter.value];
-
-            values.forEach(val => {
-                const label = document.createElement('label');
-                label.className = 'checkbox-label';
-
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.value = val.title;
-                checkbox.checked = filter.value.includes(val.title);
-
-                checkbox.addEventListener('change', (e) => {
-                    if (e.target.checked) {
-                        if (!filter.value.includes(val.title)) {
-                            filter.value.push(val.title);
-                        }
-                    } else {
-                        filter.value = filter.value.filter(v => v !== val.title);
-                    }
+        const showSuggestions = (term) => {
+            dropdown.replaceChildren();
+            if (!term) { dropdown.style.display = 'none'; return; }
+            const lc = term.toLowerCase();
+            const matches = values.filter(v =>
+                v.title.toLowerCase().includes(lc)
+            ).slice(0, 10);
+            if (matches.length === 0) { dropdown.style.display = 'none'; return; }
+            matches.forEach(v => {
+                const item = document.createElement('div');
+                item.className = 'ref-value-autocomplete-item';
+                item.textContent = v.title;
+                item.addEventListener('mousedown', (e) => {
+                    e.preventDefault(); // keep focus on input
+                    input.value = v.title;
+                    filter.value = v.title;
                     this.notifyChange();
+                    dropdown.style.display = 'none';
                 });
-
-                label.appendChild(checkbox);
-                label.appendChild(document.createTextNode(' ' + val.title));
-                checkboxGroup.appendChild(label);
+                dropdown.appendChild(item);
             });
+            dropdown.style.display = 'block';
+        };
 
-            wrapper.appendChild(checkboxGroup);
+        input.addEventListener('input', (e) => {
+            filter.value = e.target.value;
+            this.notifyChange();
+            showSuggestions(e.target.value);
+        });
+
+        input.addEventListener('blur', () => {
+            dropdown.style.display = 'none';
+        });
+
+        input.addEventListener('focus', () => {
+            if (input.value) showSuggestions(input.value);
+        });
+
+        wrapper.appendChild(input);
+        wrapper.appendChild(dropdown);
+
+        // Show first 25 known values as a reference hint
+        if (values.length > 0) {
+            const hint = document.createElement('p');
+            hint.className = 'property-values-hint';
+            const shown = values.slice(0, 25).map(v => v.title).join(', ');
+            hint.textContent = shown + (values.length > 25 ? ', …' : '');
+            wrapper.appendChild(hint);
         }
 
         // Remove any existing value inputs before appending (handles async race conditions)

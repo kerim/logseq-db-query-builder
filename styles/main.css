@@ -553,6 +553,44 @@ section {
     display: none;
 }
 
+/* Comma-separated reference hint below text inputs for ref-type properties */
+.property-values-hint {
+    margin: var(--spacing-xs) 0 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+/* Anchor for the inline autocomplete dropdown */
+.property-value-input {
+    position: relative;
+}
+
+/* Inline autocomplete dropdown for ref-type property value inputs */
+.ref-value-autocomplete {
+    display: none;
+    position: absolute;
+    z-index: 200;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    max-height: 200px;
+    overflow-y: auto;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    min-width: 100%;
+}
+
+.ref-value-autocomplete-item {
+    padding: 6px 12px;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+}
+
+.ref-value-autocomplete-item:hover {
+    background: var(--bg-hover);
+}
+
 /* ===========================
    Journal Date / Relative Date Controls
    =========================== */
