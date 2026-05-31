@@ -73,14 +73,13 @@ When user selects a property in the filter UI:
 2. **Schema inference** (`filters.js:renderFilterInputs`) queries a sample value to infer `valueType` and `cardinality`
 3. **Type-specific UI** renders based on inferred type:
    - `:db.type/boolean` → radio buttons (checked/unchecked)
-   - `:db.type/ref` → dropdown (single cardinality) or checkboxes (many cardinality), populated from `getPropertyValues()`
+   - `:db.type/ref` → text input with inline autocomplete + 25-item hint list (both cardinalities), populated from `getPropertyValues()`
    - `:db.type/number` → number input + comparison operator
    - `:db.type/instant` → date picker + comparison operator
    - Default → text input with is/contains operators
 4. **Query generation** (`queryGenerator.js:buildPropertyClause`) dispatches on `propertySchema.valueType`:
    - Boolean: `[?b :prop true/false]`
-   - Ref (single): `[?b :prop ?val] [?val :block/title "X"]`
-   - Ref (multi): `(or-join [?b] (and [?b :prop ?ref] [?ref :block/title "X"]) ...)`
+   - Ref: `[?b :prop ?val] [?val :block/title "X"]` (always a single string value from text input)
    - Number/Date: `[?b :prop ?num] [(op ?num val)]`
    - Fallback (no schema): tries both `:user.property/` and `:logseq.property/` namespaces via `or-join`
 
@@ -136,6 +135,31 @@ logseq query -g "GRAPH" -- '[:find (pull ?b [*]) :where ...]'
 ```
 
 The CLI works whether or not the Logseq desktop app is running. If you get "unable to open database file" errors, debug the actual issue — don't assume it's an app lock.
+
+### Browser Debugging with Playwright
+
+Use the Playwright MCP skill (`mcp__playwright__*` tools) to drive the browser for UI verification and debugging.
+
+**Critical: Playwright requires HTTP, not `file://`.** The sandbox blocks `file://` navigation. Always start a local server first:
+
+```bash
+python3 -m http.server 8765 --directory /Users/niyaro/Code/Logseq/logseq-db-query-builder
+```
+
+Then navigate Playwright to `http://localhost:8765`.
+
+**Dev API token:** `slippers-chair-TABLE` — use this when Playwright needs to connect to Logseq (paste into the token field and click Connect). This is a local-only credential for `127.0.0.1:12315`.
+
+**Useful Playwright patterns:**
+
+```javascript
+// Paste token and connect
+mcp__playwright__browser_fill_form({ fields: { '#api-token': 'slippers-chair-TABLE' } })
+mcp__playwright__browser_click({ selector: '#save-token-btn' })
+
+// Evaluate against window.app directly
+mcp__playwright__browser_evaluate({ script: 'window.app.api.getProperties(window.app.state.graph, "alias")' })
+```
 
 ### Fix Tools, Don't Work Around Them
 
