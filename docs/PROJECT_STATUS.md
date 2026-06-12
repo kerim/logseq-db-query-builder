@@ -1,8 +1,15 @@
 # Logseq DB Query Builder - Project Status
 
-## v0.7.5 (2026-06-01)
+## v0.8.0 (2026-06-12)
 
-**Current Version**: v0.7.5
+**Current Version**: v0.8.0
+
+### What's New in v0.8.0
+
+- **New filter: "parent links page"** — matches blocks whose immediate parent block references a chosen page.
+- **New filter: "block on page"** — matches blocks that live on a chosen page.
+
+## v0.7.5 (2026-06-01)
 
 ### What's New in v0.7.5
 

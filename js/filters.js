@@ -29,6 +29,16 @@ const FILTER_TYPES = {
         operators: null,
         inputs: ['value-autocomplete']
     },
+    'parent-page-reference': {
+        label: 'parent links page',
+        operators: null,
+        inputs: ['value-autocomplete']
+    },
+    'block-on-page': {
+        label: 'block on page',
+        operators: null,
+        inputs: ['value-autocomplete']
+    },
     'task': {
         label: 'task',
         operators: null,

@@ -221,6 +221,8 @@ ${wrappedWhere}]}`;
             
             case 'tags':
             case 'page-reference':
+            case 'parent-page-reference':
+            case 'block-on-page':
                 return filter.value && filter.value.trim().length > 0;
             
             case 'property':
@@ -288,7 +290,7 @@ ${wrappedWhere}]}`;
      */
     static determineEntityType(filters) {
         const pageOnlyTypes = ['page'];
-        const blockOnlyTypes = ['full-text', 'task', 'priority'];
+        const blockOnlyTypes = ['full-text', 'task', 'priority', 'parent-page-reference', 'block-on-page'];
         
         const hasPageOnly = filters.some(f => pageOnlyTypes.includes(f.type));
         const hasBlockOnly = filters.some(f => blockOnlyTypes.includes(f.type));
@@ -327,7 +329,13 @@ ${wrappedWhere}]}`;
             
             case 'page-reference':
                 return this.buildPageReferenceClause(filter, entityVar);
-            
+
+            case 'parent-page-reference':
+                return this.buildParentPageReferenceClause(filter, entityVar);
+
+            case 'block-on-page':
+                return this.buildBlockOnPageClause(filter, entityVar);
+
             case 'task':
                 return this.buildTaskClause(filter, entityVar);
             
@@ -396,21 +404,26 @@ ${wrappedWhere}]}`;
      */
     static buildFullTextClause(filter, entityVar) {
         const { operator = 'contains', value } = filter;
-        const escapedValue = this.escapeString(value);  // Escape quotes, etc.
-        const regexEscaped = this.escapeRegex(escapedValue);  // Escape regex chars
+        // Escape order matters: regex-escape the RAW value first (so metacharacters
+        // like "." match literally), THEN string-escape the result so the backslashes
+        // are valid inside the EDN string literal. Doing it the other way around emits
+        // invalid EDN (e.g. "(?i)gmail\.com") and Logseq rejects the whole query — so
+        // any search term containing . ( ) ? + $ etc. silently returns nothing.
+        const regexEscaped = this.escapeRegex(value);  // Escape regex chars first
+        const escapedValue = this.escapeString(regexEscaped);  // Then escape for EDN string
 
         switch (operator) {
             case 'equals':
                 // Case-insensitive exact match using anchored regex
                 return `[${entityVar} :block/title ?title]
- [(re-pattern "(?i)^${regexEscaped}$") ?pattern]
+ [(re-pattern "(?i)^${escapedValue}$") ?pattern]
  [(re-matches ?pattern ?title)]`;
 
             case 'contains':
             default:
                 // Case-insensitive substring match using regex
                 return `[${entityVar} :block/title ?title]
- [(re-pattern "(?i)${regexEscaped}") ?pattern]
+ [(re-pattern "(?i)${escapedValue}") ?pattern]
  [(re-find ?pattern ?title)]`;
         }
     }
@@ -634,6 +647,32 @@ ${wrappedWhere}]}`;
  (or-join [${refVar} ${targetVar}]
    [(= ${refVar} ${targetVar})]
    (parent ${targetVar} ${refVar}))`;
+    }
+
+    /**
+     * Build parent-page-reference clause.
+     * Matches a block whose immediate parent block references the chosen page.
+     */
+    static buildParentPageReferenceClause(filter, entityVar) {
+        const escapedValue = this.escapeString((filter.value || '').toLowerCase());
+        const idx = this.varCounter++;
+        const parentVar = `?pp${idx}`;
+        const refVar = `?ppref${idx}`;
+        return `[${entityVar} :block/parent ${parentVar}]
+ [${parentVar} :block/refs ${refVar}]
+ [${refVar} :block/name "${escapedValue}"]`;
+    }
+
+    /**
+     * Build block-on-page clause.
+     * Matches a block that lives on the chosen page.
+     */
+    static buildBlockOnPageClause(filter, entityVar) {
+        const escapedValue = this.escapeString((filter.value || '').toLowerCase());
+        const idx = this.varCounter++;
+        const pageVar = `?bop${idx}`;
+        return `[${entityVar} :block/page ${pageVar}]
+ [${pageVar} :block/name "${escapedValue}"]`;
     }
 
     /**

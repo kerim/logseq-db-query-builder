@@ -120,6 +120,8 @@ class Autocomplete {
                 break;
 
             case 'page-reference':
+            case 'parent-page-reference':
+            case 'block-on-page':
                 console.log('[FETCH] Calling searchPages()...');
                 const pages = await this.api.searchPages(graphName, searchTerm);
                 console.log('[FETCH] Got pages:', pages.length);

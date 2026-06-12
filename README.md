@@ -88,6 +88,8 @@ ALL of the following:
 | **full text search** | Search block content | contains, equals |
 | **property** | Match property values | Auto-detects type (text, reference, boolean, date, number) |
 | **page reference** | Find blocks linking to pages | Auto-complete |
+| **parent links page** | Find blocks whose immediate parent links to a page | Auto-complete |
+| **block on page** | Find blocks that live on a specific page | Auto-complete |
 | **task** | Find task items | Status filter (multi-select). "Todo" also matches Task-tagged blocks with no explicit status, matching Logseq's task UI |
 | **priority** | Filter by priority | Urgent, High, Medium, Low |
 | **between (dates)** | Date range queries | created-at, updated-at, journal-day. Absolute mode (date pickers) or Relative mode (Last/Next N days, custom range) |

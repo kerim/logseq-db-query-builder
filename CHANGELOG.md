@@ -5,6 +5,15 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-06-12
+
+### Added
+- **"parent links page" filter** (`parent-page-reference`). Matches any block whose immediate parent block references a chosen page. Useful for finding child items that live under a specific page link in an outline.
+- **"block on page" filter** (`block-on-page`). Matches any block that lives directly on a chosen page. Both filters use the existing page autocomplete and are block-only (they force block-mode query generation).
+
+### Fixed
+- **Full-text search now works for terms containing punctuation** (e.g. `gmail.com`, `(draft)`, `what?`). The regex- and string-escaping in `buildFullTextClause` ran in the wrong order, emitting invalid EDN (e.g. `"(?i)gmail\.com"`) that Logseq rejected — so any search term with a `.`, `(`, `)`, `?`, `+`, `$`, etc. silently returned nothing. The two escaping passes now run in the correct order.
+
 ## [0.7.6] - 2026-06-01
 
 ### Added
