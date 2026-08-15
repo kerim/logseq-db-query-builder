@@ -262,7 +262,11 @@ ${wrappedWhere}]}`;
                     return filter.value.length > 0;
                 }
                 return filter.value && filter.value.trim().length > 0;
-            
+
+            case 'deadline-scheduled':
+                // Both selects always carry meaningful defaults — nothing to validate
+                return true;
+
             case 'between':
                 if (filter.betweenDateMode === 'relative') {
                     const preset = filter.relativeDatePreset;
@@ -290,7 +294,7 @@ ${wrappedWhere}]}`;
      */
     static determineEntityType(filters) {
         const pageOnlyTypes = ['page'];
-        const blockOnlyTypes = ['full-text', 'task', 'priority', 'parent-page-reference', 'block-on-page'];
+        const blockOnlyTypes = ['full-text', 'task', 'priority', 'deadline-scheduled', 'parent-page-reference', 'block-on-page'];
         
         const hasPageOnly = filters.some(f => pageOnlyTypes.includes(f.type));
         const hasBlockOnly = filters.some(f => blockOnlyTypes.includes(f.type));
@@ -341,7 +345,10 @@ ${wrappedWhere}]}`;
             
             case 'priority':
                 return this.buildPriorityClause(filter, entityVar);
-            
+
+            case 'deadline-scheduled':
+                return this.buildDeadlineScheduledClause(filter, entityVar);
+
             case 'between':
                 return this.buildBetweenClause(filter, entityVar);
             
@@ -773,6 +780,39 @@ ${wrappedWhere}]}`;
             return `[${entityVar} :logseq.property/priority ?priority]
  (or ${orClauses})`;
         }
+    }
+
+    /**
+     * Build deadline/scheduled presence clause.
+     *
+     * Both properties are plain ms-epoch integers on the block, so "empty"
+     * means the attribute is absent from the entity entirely — there is no
+     * nil value to compare against. The absence direction MUST bind the
+     * entity var first: a bare (not-join [?b] ...) fails with "Insufficient
+     * bindings". Same [?b :block/uuid] bind that combineWithNOT() uses.
+     */
+    static buildDeadlineScheduledClause(filter, entityVar) {
+        const field = filter.dateField || 'either';
+        const state = filter.dateSetState || 'not-set';
+
+        const attrs = field === 'deadline'  ? [':logseq.property/deadline']
+                    : field === 'scheduled' ? [':logseq.property/scheduled']
+                    : [':logseq.property/deadline', ':logseq.property/scheduled'];
+
+        if (state === 'set') {
+            if (attrs.length === 1) {
+                return `[${entityVar} ${attrs[0]} _]`;
+            }
+            return `(or-join [${entityVar}]
+  [${entityVar} ${attrs[0]} _]
+  [${entityVar} ${attrs[1]} _])`;
+        }
+
+        const nots = attrs
+            .map(a => `(not-join [${entityVar}] [${entityVar} ${a} _])`)
+            .join('\n ');
+        return `[${entityVar} :block/uuid]
+ ${nots}`;
     }
 
     /**

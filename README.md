@@ -92,6 +92,7 @@ ALL of the following:
 | **block on page** | Find blocks that live on a specific page | Auto-complete |
 | **task** | Find task items | Status filter (multi-select). "Todo" also matches Task-tagged blocks with no explicit status, matching Logseq's task UI |
 | **priority** | Filter by priority | Urgent, High, Medium, Low |
+| **deadline / scheduled** | Filter blocks by whether deadline and/or scheduled properties are present at all | Field: deadline or scheduled / deadline / scheduled. State: is not set / is set. Pairs with the task filter to find tasks with no dates |
 | **between (dates)** | Date range queries | created-at, updated-at, journal-day. Absolute mode (date pickers) or Relative mode (Last/Next N days, custom range) |
 
 ## Property Type Detection
@@ -171,6 +172,8 @@ When using the online version (HTTPS), your browser may block requests to the lo
 
 ## Version History
 
+- **v0.9.0** - New "deadline / scheduled" filter: find blocks where deadline and/or scheduled is set or not set (pair with the task filter to find tasks with no dates)
+- **v0.8.0** - New "parent links page" and "block on page" filters; fix full-text search for terms containing punctuation (e.g. `gmail.com`, `(draft)`, `what?`)
 - **v0.7.6** - UX: ref-type property value inputs now have inline autocomplete (filtered from known values as you type)
 - **v0.7.5** - UX: ref-type property values now use a text input with a 25-item comma-separated hint list instead of an unwieldy dropdown or checkbox list
 - **v0.7.4** - Fix: built-in block-namespace properties (alias, tags, refs, etc.) now appear in the property dropdown with correct schema/type detection; internal system properties hidden
