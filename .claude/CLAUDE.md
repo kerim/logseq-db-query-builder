@@ -130,8 +130,8 @@ Key methods:
 Always verify Datalog patterns with the Logseq CLI before writing code. All `logseq` CLI commands require `dangerouslyDisableSandbox: true` because they read from `~/Library/Application Support/Logseq/`.
 
 ```bash
-logseq list                    # see available graphs
-logseq query -g "GRAPH" -- '[:find (pull ?b [*]) :where ...]'
+logseq graph list              # see available graphs
+logseq query -g "GRAPH" --query '[:find (pull ?b [*]) :where ...]'
 ```
 
 The CLI works whether or not the Logseq desktop app is running. If you get "unable to open database file" errors, debug the actual issue — don't assume it's an app lock.
@@ -196,7 +196,7 @@ Source in `js/` and `styles/` only. Docs in `docs/`. Tests in `tests/`.
 ### Modifying Query Generation
 
 1. Edit the relevant `build*Clause()` method in `js/queryGenerator.js`
-2. Test the generated Datalog with `logseq query` CLI first
+2. Test the generated Datalog with the `logseq query --query` CLI first
 3. Verify in browser
 4. Update version, commit, tag
 
