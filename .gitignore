@@ -42,3 +42,6 @@ tests/
 # MCP / tooling
 .mcp.json
 .playwright-mcp/
+
+# Superdev run notes
+.claude/superdev/
