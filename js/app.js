@@ -489,6 +489,31 @@ class App {
             const queryOutput = document.getElementById('query-output');
             queryOutput.textContent = 'No valid filters. Add filters to generate a query.';
         }
+
+        this.updateDeadlineScheduledWarning(rootGroup);
+    }
+
+    /**
+     * Show a non-blocking warning when the "deadline / scheduled" filter is
+     * the *only* filter in the tree with dateSetState 'not-set'. Datascript
+     * has no concept of "empty" — the absence check binds every entity that
+     * merely exists (:block/uuid), so standing alone this filter matches
+     * nearly the whole graph (pages, journals, tags, schema entities, not
+     * just blocks). It composes fine alongside other filters, so the
+     * warning only fires for the single-filter case and never blocks Search.
+     */
+    updateDeadlineScheduledWarning(rootGroup) {
+        const warningEl = document.getElementById('deadline-scheduled-warning');
+        if (!warningEl) return;
+
+        const allFilters = QueryGenerator.flattenFilters(rootGroup);
+        const validFilters = allFilters.filter(f => QueryGenerator.isValidFilter(f));
+
+        const isLoneUnboundedFilter = validFilters.length === 1 &&
+            validFilters[0].type === 'deadline-scheduled' &&
+            (validFilters[0].dateSetState || 'not-set') === 'not-set';
+
+        warningEl.style.display = isLoneUnboundedFilter ? 'block' : 'none';
     }
 
     /**

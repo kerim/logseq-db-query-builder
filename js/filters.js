@@ -49,6 +49,11 @@ const FILTER_TYPES = {
         operators: null,
         inputs: ['priority-select']
     },
+    'deadline-scheduled': {
+        label: 'deadline / scheduled',
+        operators: null,
+        inputs: ['date-field-select', 'date-set-state-select']
+    },
     'between': {
         label: 'between (dates)',
         operators: null,
@@ -96,6 +101,8 @@ class FilterManager {
             endDate: '',
             dateProperty: 'created-at',
             betweenDateMode: 'absolute',
+            dateField: 'either',
+            dateSetState: 'not-set',
             relativeDatePreset: null,
             relativeDateDays: 7,
             relativeDateStart: 7,
@@ -755,6 +762,39 @@ class FilterManager {
                     });
                     container.appendChild(datePropSelect);
                     break;
+
+                case 'date-field-select': {
+                    if (!filter.dateField) filter.dateField = 'either';
+                    const fieldSelect = document.createElement('select');
+                    fieldSelect.className = 'select-input-small';
+                    fieldSelect.innerHTML = `
+                        <option value="either" ${filter.dateField === 'either' ? 'selected' : ''}>deadline or scheduled</option>
+                        <option value="deadline" ${filter.dateField === 'deadline' ? 'selected' : ''}>deadline</option>
+                        <option value="scheduled" ${filter.dateField === 'scheduled' ? 'selected' : ''}>scheduled</option>
+                    `;
+                    fieldSelect.addEventListener('change', (e) => {
+                        filter.dateField = e.target.value;
+                        this.notifyChange();
+                    });
+                    container.appendChild(fieldSelect);
+                    break;
+                }
+
+                case 'date-set-state-select': {
+                    if (!filter.dateSetState) filter.dateSetState = 'not-set';
+                    const stateSelect = document.createElement('select');
+                    stateSelect.className = 'select-input-small';
+                    stateSelect.innerHTML = `
+                        <option value="not-set" ${filter.dateSetState === 'not-set' ? 'selected' : ''}>is not set</option>
+                        <option value="set" ${filter.dateSetState === 'set' ? 'selected' : ''}>is set</option>
+                    `;
+                    stateSelect.addEventListener('change', (e) => {
+                        filter.dateSetState = e.target.value;
+                        this.notifyChange();
+                    });
+                    container.appendChild(stateSelect);
+                    break;
+                }
             }
         });
     }

@@ -1,8 +1,14 @@
 # Logseq DB Query Builder - Project Status
 
-## v0.8.0 (2026-06-12)
+## v0.9.0 (2026-08-15)
 
-**Current Version**: v0.8.0
+**Current Version**: v0.9.0
+
+### What's New in v0.9.0
+
+- **New filter: "deadline / scheduled"** — matches blocks by whether `:logseq.property/deadline` and/or `:logseq.property/scheduled` are present at all, with dropdowns for which field and which state (is set / is not set). Pair with the task filter to find tasks with no dates.
+
+## v0.8.0 (2026-06-12)
 
 ### What's New in v0.8.0
 
