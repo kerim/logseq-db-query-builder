@@ -185,6 +185,7 @@ A change is not delivered until it has been driven in the browser and the user h
 - The autocomplete dropdown element is **shared between inputs**. A suggestion list left over from another filter is still clickable, and a click landing on it assigns the value to the *other* input. Click suggestions by their exact text, not by position — clicking `.first` too early produced a false "the hint disappeared" failure.
 - `App.executeSearch()` resolves missing property identities asynchronously and then regenerates the query, so `#query-output` is only final *after* Search. Reading it before clicking Search shows the pre-resolution fallback.
 - A fresh page already contains one empty filter row, so `.filter-row` indices shift unless you click **Clear All** first.
+- The **deployed GitHub Pages site cannot be verified this way.** Chrome's Private Network Access policy blocks a page on a public origin from calling `127.0.0.1`, so the fetch fails with `ERR_FAILED` and the app sits at "Disconnected". That is a browser policy, not a fault in the tool — verify against the local server, and confirm the deploy by checking the version string in the served HTML (`curl -s https://kerim.github.io/logseq-db-query-builder/ | grep -o "v0\.10\.[0-9]"`). Pages rebuilds take a minute or two after a push.
 
 ### Fix Tools, Don't Work Around Them
 
