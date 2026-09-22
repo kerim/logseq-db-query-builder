@@ -1,5 +1,19 @@
 # Logseq DB Query Builder - Project Status
 
+## v0.10.2 (2026-09-22)
+
+**Current Version**: v0.10.2
+
+### What's New in v0.10.2
+
+- **Fix: property filters now reach properties whose values are pages.** In a DB graph a user property keeps each value as a page of its own — the text lives in that page's title — yet Logseq declares the property with the same generic type it uses for plain text. The tool read that declaration as "text", and having no code path for a text property, fell back to inventing the attribute name from the property's *label*. Labels contain spaces and omit the random suffix, so the query named a property that does not exist, and Logseq answers an unknown attribute with an empty result rather than an error — leaving a silent "no results". Property types are now confirmed against the graph by sampling a stored value, and the attribute name always comes from the property's real identity; a name typed without picking a suggestion is resolved by label at search time. Measured live: `tags: my projects` + `Project Status contains Active` went from 0 rows to the 2 expected rows.
+- **Reference-property filters now honour their operator** — `contains` / `starts-with` / `ends-with` match the value page's title case-insensitively instead of always demanding an exact title. Each value pattern also binds its own variables, so several property filters in one AND group no longer unify their values.
+- **The known-values list under a property filter is laid out properly.** It sits on its own line spanning the filter row, in the same panel the tags filter uses for its associated properties, instead of printing as loose grey text inside the shrink-to-fit value box.
+
+### Verification
+
+Driven in Chrome against a live graph (`scripts/verify-ui.py`): the filter above returns 2 rows when the property is picked from the dropdown and when its name is typed by hand; a control tag-only filter still returns 95; no page errors; both themes screenshot-checked. A diff of generated queries across 25 other filter shapes showed them byte-identical.
+
 ## v0.10.0 (2026-09-22)
 
 **Current Version**: v0.10.0

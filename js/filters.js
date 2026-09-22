@@ -825,9 +825,10 @@ class FilterManager {
             schema: filter.propertySchema
         });
 
-        // Remove existing value input
-        const existing = container.querySelector('.property-value-input');
-        if (existing) existing.remove();
+        // Remove the existing value input along with its known-values panel, so
+        // neither lingers when the property's type resolves to a different input.
+        container.querySelectorAll('.property-value-input, .property-values-hint')
+            .forEach(el => el.remove());
 
         if (!filter.propertySchema) {
             console.log('No schema, rendering text input');
@@ -933,20 +934,32 @@ class FilterManager {
         wrapper.appendChild(input);
         wrapper.appendChild(dropdown);
 
-        // Show first 25 known values as a reference hint
+        // Remove any existing value inputs before appending (handles async race conditions)
+        container.querySelectorAll('.property-value-input, .property-values-hint')
+            .forEach(el => el.remove());
+
+        container.appendChild(wrapper);
+
+        // List the known values on their own line beneath the row, in the same
+        // panel the tags filter uses for its associated properties — appended to
+        // the inputs container rather than the input wrapper so it spans the row
+        // instead of wrapping inside a shrink-to-fit box.
         if (values.length > 0) {
             const hint = document.createElement('p');
             hint.className = 'property-values-hint';
+
+            const label = document.createElement('span');
+            label.style.opacity = '0.7';
+            label.textContent = '💡 Known values:';
+            hint.appendChild(label);
+
             const shown = values.slice(0, 25).map(v => v.title).join(', ');
-            hint.textContent = shown + (values.length > 25 ? ', …' : '');
-            wrapper.appendChild(hint);
+            hint.appendChild(document.createTextNode(
+                ' ' + shown + (values.length > 25 ? ', …' : '')
+            ));
+
+            container.appendChild(hint);
         }
-
-        // Remove any existing value inputs before appending (handles async race conditions)
-        const existingInputs = container.querySelectorAll('.property-value-input');
-        existingInputs.forEach(el => el.remove());
-
-        container.appendChild(wrapper);
     }
 
     /**

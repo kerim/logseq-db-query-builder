@@ -376,6 +376,16 @@ class LogseqAPI {
                     valueType = null; // unknown — caller falls back to sample-value inference
             }
 
+            // Logseq's declared type only says a value is *text-ish* (:default,
+            // :url, :keyword, :string) — it does not say how the value is stored.
+            // In DB graphs a user text property keeps every value as its own page
+            // (the text lives in that page's :block/title), so the value is an
+            // entity reference. Comparing such a value against a string matches
+            // nothing, silently. Ask the graph what it actually holds.
+            if (valueType === ':db.type/string' && await this.propertyValuesArePages(graphName, queryIdent)) {
+                valueType = ':db.type/ref';
+            }
+
             return {
                 name: schema['block/title'] || schema[':block/title'] || schema['title'],
                 ident: this._resolveIdent(schema['db/ident'] || schema[':db/ident'] || schema['ident']),
@@ -387,6 +397,39 @@ class LogseqAPI {
         } catch (error) {
             console.error('Failed to get property schema by ident:', error);
             return null;
+        }
+    }
+
+    /**
+     * True when a property stores its values as pages/blocks (the text lives in
+     * the value's :block/title) rather than as raw strings.
+     *
+     * The declared property type cannot answer this: a user text property is
+     * declared with the generic "default" type yet every one of its values is
+     * stored as a page of its own. Ask the graph for one stored value instead
+     * and look at what comes back — an entity reference arrives as an id
+     * (number), a raw value as the string or boolean it is.
+     *
+     * @param {string} graphName - Ignored
+     * @param {string} queryIdent - Full property ident including the leading ':'
+     * @returns {Promise<boolean>} true only when a stored value is an entity
+     */
+    async propertyValuesArePages(graphName, queryIdent) {
+        try {
+            const query = `[:find ?v :where [_ ${queryIdent} ?v] :limit 1]`;
+            const result = await this.executeQuery(graphName, query);
+            if (!result.data || result.data.length === 0) return false;
+
+            const row = result.data[0];
+            const sample = Array.isArray(row) ? row[0] : row;
+
+            // Entity ids are numbers; a pulled ref is an {:id n} object. A list
+            // of raw values is still raw, so an array does not count.
+            return typeof sample === 'number'
+                || (sample !== null && typeof sample === 'object' && !Array.isArray(sample));
+        } catch (error) {
+            console.warn('Failed to probe property value storage:', error);
+            return false;
         }
     }
 

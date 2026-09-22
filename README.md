@@ -188,6 +188,7 @@ When using the online version (HTTPS), your browser may block requests to the lo
 
 ## Version History
 
+- **v0.10.2** - Fix: property filters returned nothing for properties whose values are pages (the usual case for user text properties), because the tool took the property's declared type at face value and then guessed its internal name from the label; property types are now confirmed against the graph and the real name is always used. Also: `contains` / `starts-with` / `ends-with` now work on reference-property values, ignoring case, and the known-values list sits in a proper panel under the filter
 - **v0.10.0** - "page (content)" filter gains is / contains / starts-with / ends-with plus **current page** (no page name needed — the tool searches the page open in Logseq, and the copied query pins itself to the page you paste it on); renamed "page" → "page (name)" and "block on page" → "page (content)", placed together in the menu
 - **v0.9.1** - Fix: the "page" and "page reference" filters now match capitalised page names (page names are stored lowercased, so any capital letter previously matched nothing)
 - **v0.9.0** - New "deadline / scheduled" filter: find blocks where deadline and/or scheduled is set or not set (pair with the task filter to find tasks with no dates)

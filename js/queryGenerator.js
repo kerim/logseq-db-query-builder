@@ -460,10 +460,17 @@ ${wrappedWhere}]}`;
     }
 
     /**
-     * Build property clause
+     * Build property clause.
+     *
+     * The attribute name always comes from the property's real identity — the
+     * ident recorded when it was picked, or the one carried in the schema. The
+     * display label is never used as an attribute name: labels contain spaces
+     * and omit the suffix Logseq gives user properties, so a label-derived
+     * attribute refers to a property that does not exist, and Logseq answers
+     * that with an empty result rather than an error.
      */
     static buildPropertyClause(filter, entityVar) {
-        const { propertyName, propertySchema, operator = 'is', value } = filter;
+        const { propertyName, propertySchema, propertyIdent, operator = 'is', value } = filter;
 
         // If we have schema info, use type-specific query generation
         if (propertySchema && propertySchema.ident) {
@@ -486,17 +493,31 @@ ${wrappedWhere}]}`;
                     return this.buildBooleanPropertyClause(entityVar, propIdent, value);
 
                 case ':db.type/ref':
-                    return this.buildRefPropertyClause(entityVar, propIdent, value, propertySchema.cardinality);
+                    return this.buildRefPropertyClause(entityVar, propIdent, value, propertySchema.cardinality, operator);
 
                 case ':db.type/number':
                     return this.buildNumberPropertyClause(entityVar, propIdent, value, operator);
 
                 case ':db.type/instant':
                     return this.buildDatePropertyClause(entityVar, propIdent, value, operator);
+
+                case ':db.type/string':
+                    return this.buildTextPropertyClause(entityVar, propIdent, value, operator);
             }
         }
 
-        // Fallback: Try both user.property and logseq.property namespaces
+        // No usable schema, but the picker did record the property's identity:
+        // query that real attribute. User property values in DB graphs are pages,
+        // so match the value through its title.
+        const recordedIdent = propertyIdent || (propertySchema && propertySchema.ident) || null;
+        if (recordedIdent) {
+            const propIdent = recordedIdent.startsWith(':') ? recordedIdent : `:${recordedIdent}`;
+            return this.buildRefPropertyClause(entityVar, propIdent, value, ':db.cardinality/one', operator);
+        }
+
+        // Last resort: no identity at all (the label was typed without picking a
+        // suggestion). The legacy label-derived guess is kept for the rare
+        // built-in property whose ident name happens to equal its label.
         const userProp = `:user.property/${propertyName}`;
         const logseqProp = `:logseq.property/${propertyName}`;
 
@@ -530,25 +551,113 @@ ${wrappedWhere}]}`;
     }
 
     /**
-     * Build reference property clause (entity lookup pattern)
+     * Build reference property clause (entity lookup pattern).
+     * Accepts a single value or an array (multi-select).
      */
-    static buildRefPropertyClause(entityVar, propIdent, value, cardinality) {
-        if (!value) return null;
+    static buildRefPropertyClause(entityVar, propIdent, value, cardinality, operator = 'is') {
+        const values = (Array.isArray(value) ? value : [value])
+            .filter(v => v !== null && v !== undefined && String(v).length > 0);
 
-        if (Array.isArray(value) && value.length > 0) {
-            // Multiple values - OR query
-            const clauses = value.map(v => {
-                const escaped = this.escapeString(v);
-                return `(and [${entityVar} ${propIdent} ?ref] [?ref :block/title "${escaped}"])`;
-            }).join('\n  ');
-            return `(or-join [${entityVar}]
-  ${clauses})`;
-        } else {
-            // Single value - entity lookup
-            const escaped = this.escapeString(value);
-            return `[${entityVar} ${propIdent} ?val]
- [?val :block/title "${escaped}"]`;
+        if (values.length === 0) return null;
+
+        const patterns = values.map(v => this.buildRefValuePattern(entityVar, propIdent, v, operator));
+
+        if (patterns.length === 1) {
+            return patterns[0];
         }
+
+        return this.orJoinPatterns(patterns, entityVar);
+    }
+
+    /**
+     * Combine one pattern per value with or-join, so any one of them may match.
+     * Used by the multi-value property filters.
+     */
+    static orJoinPatterns(patterns, entityVar) {
+        const branches = patterns.map(p =>
+            '  (and\n' + p.split('\n').map(line => '    ' + line.trimStart()).join('\n') + ')'
+        ).join('\n');
+
+        return `(or-join [${entityVar}]
+${branches})`;
+    }
+
+    /**
+     * One reference-property pattern: the entity points at a value page, and the
+     * value page's title is compared with the filter's operator.
+     *
+     * 'is' matches the title exactly — the values are real titles, so an exact
+     * match is the honest reading. The other operators compare case-insensitively
+     * through a regex, mirroring the full-text filter, so a value typed in
+     * different case still matches. (An entity reference cannot be handed to
+     * clojure.string/includes?, which aborts the whole query instead of failing
+     * just that branch.)
+     *
+     * Each pattern binds its own variables, so several reference-property
+     * filters can sit in one AND group without their values unifying.
+     */
+    static buildRefValuePattern(entityVar, propIdent, value, operator) {
+        const idx = this.varCounter++;
+        const refVar = `?ref${idx}`;
+        const lines = [`[${entityVar} ${propIdent} ${refVar}]`];
+
+        if (operator === 'is' || operator === 'equals') {
+            lines.push(`[${refVar} :block/title "${this.escapeString(value)}"]`);
+            return lines.join('\n ');
+        }
+
+        // Escape regex metacharacters first so a value like "3.5" matches
+        // literally, then escape for the EDN string — same order as full text.
+        const escapedValue = this.escapeString(this.escapeRegex(value));
+        const anchored = operator === 'starts-with' ? `^${escapedValue}`
+                       : operator === 'ends-with'   ? `${escapedValue}$`
+                       : escapedValue;
+
+        lines.push(`[${refVar} :block/title ?title${idx}]`);
+        lines.push(`[(re-pattern "(?i)${anchored}") ?pat${idx}]`);
+        lines.push(`[(re-find ?pat${idx} ?title${idx})]`);
+        return lines.join('\n ');
+    }
+
+    /**
+     * Build a clause for a property whose values are stored as raw scalars
+     * (Logseq's built-in string/keyword properties). The caller has already
+     * resolved the property's real ident.
+     */
+    static buildTextPropertyClause(entityVar, propIdent, value, operator = 'is') {
+        const values = (Array.isArray(value) ? value : [value])
+            .filter(v => v !== null && v !== undefined && String(v).length > 0);
+
+        if (values.length === 0) return null;
+
+        const patterns = values.map(v => {
+            const idx = this.varCounter++;
+            const valueVar = `?text${idx}`;
+            const escapedValue = this.escapeString(v);
+
+            switch (operator) {
+                case 'contains':
+                    return `[${entityVar} ${propIdent} ${valueVar}]
+ [(clojure.string/includes? ${valueVar} "${escapedValue}")]`;
+
+                case 'starts-with':
+                    return `[${entityVar} ${propIdent} ${valueVar}]
+ [(clojure.string/starts-with? ${valueVar} "${escapedValue}")]`;
+
+                case 'ends-with':
+                    return `[${entityVar} ${propIdent} ${valueVar}]
+ [(clojure.string/ends-with? ${valueVar} "${escapedValue}")]`;
+
+                default:
+                    return `[${entityVar} ${propIdent} "${escapedValue}"]`;
+            }
+        });
+
+        if (patterns.length === 1) {
+            return patterns[0];
+        }
+
+        return this.orJoinPatterns(patterns, entityVar);
     }
 
     /**

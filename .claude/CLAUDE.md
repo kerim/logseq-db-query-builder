@@ -138,7 +138,7 @@ The CLI works whether or not the Logseq desktop app is running. If you get "unab
 
 ### Browser Debugging with Playwright
 
-Use the Playwright MCP skill (`mcp__playwright__*` tools) to drive the browser for UI verification and debugging.
+Use the Playwright MCP skill (`mcp__playwright__*` tools) when it is mounted. When it is not, drive Chrome with the committed script, `scripts/verify-ui.py` (Python Playwright against the installed Chrome — no browser download).
 
 **Critical: Playwright requires HTTP, not `file://`.** The sandbox blocks `file://` navigation. Always start a local server first:
 
@@ -160,6 +160,31 @@ mcp__playwright__browser_click({ selector: '#save-token-btn' })
 // Evaluate against window.app directly
 mcp__playwright__browser_evaluate({ script: 'window.app.api.getProperties(window.app.state.graph, "alias")' })
 ```
+
+### Pre-delivery procedure (required)
+
+A change is not delivered until it has been driven in the browser and the user has been handed a running URL. Never deliver "this should work", and never ask the user to start a server or run a test.
+
+1. **Serve the working tree** as a managed background job and leave it running.
+   ```bash
+   python3 -m http.server 8123 --bind 127.0.0.1
+   ```
+   Check the port is free first — a stale server on the port silently serves old files and every later check becomes meaningless.
+2. **Bump `?v=X.Y.Z` on every `<script>` and `<link>`** in `index.html` before testing a JS or CSS change. Without it the browser serves the cached file and the test proves nothing about the new code.
+3. **Drive the real UI** against the live graph — `scripts/verify-ui.py` builds the fixture filter both ways (property picked from the dropdown, and typed by hand), runs a control filter, and asserts the result count, the generated query, the known-values panel, and page errors:
+   ```bash
+   python3 scripts/verify-ui.py http://127.0.0.1:8123/
+   ```
+   Add a check to it whenever a behaviour is added, so the next change is covered too.
+4. **Look at the screenshots it writes** (`/tmp/verify-a-picked.png`, `/tmp/verify-c-tags.png`). A correct row count with a broken layout still fails the user. For any CSS change, check both themes via `#theme-toggle`.
+5. **For query-generation changes, diff old against new.** Load the previous file with `git show HEAD:js/queryGenerator.js` alongside the working copy, generate the same corpus of filter shapes from both, and compare: everything the change does not intend to touch must be byte-identical. This is how the property-filter fix was shown not to disturb the other 25 filter shapes.
+6. **Hand over the URL in the reply** — "Open http://127.0.0.1:8123" — not instructions for running one.
+
+**Testing pitfalls in this app:**
+
+- The autocomplete dropdown element is **shared between inputs**. A suggestion list left over from another filter is still clickable, and a click landing on it assigns the value to the *other* input. Click suggestions by their exact text, not by position — clicking `.first` too early produced a false "the hint disappeared" failure.
+- `App.executeSearch()` resolves missing property identities asynchronously and then regenerates the query, so `#query-output` is only final *after* Search. Reading it before clicking Search shows the pre-resolution fallback.
+- A fresh page already contains one empty filter row, so `.filter-row` indices shift unless you click **Clear All** first.
 
 ### Fix Tools, Don't Work Around Them
 

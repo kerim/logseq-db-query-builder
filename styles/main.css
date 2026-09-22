@@ -545,8 +545,11 @@ section {
     margin-top: var(--spacing-sm);
 }
 
-/* Property suggestions hint for tags */
-.property-suggestions-hint {
+/* Secondary panels that sit on their own line beneath a filter's inputs and span
+   the row: the tags filter's associated properties, and the values a reference
+   property already uses. */
+.property-suggestions-hint,
+.property-values-hint {
     width: 100%;
     padding: var(--spacing-sm);
     background: var(--bg-secondary);
@@ -557,16 +560,9 @@ section {
     color: var(--text-secondary);
 }
 
-.property-suggestions-hint:empty {
+.property-suggestions-hint:empty,
+.property-values-hint:empty {
     display: none;
-}
-
-/* Comma-separated reference hint below text inputs for ref-type properties */
-.property-values-hint {
-    margin: var(--spacing-xs) 0 0;
-    font-size: var(--font-size-sm);
-    color: var(--text-secondary);
-    line-height: 1.4;
 }
 
 /* Anchor for the inline autocomplete dropdown */

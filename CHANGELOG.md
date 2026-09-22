@@ -5,6 +5,15 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.2] - 2026-09-22
+
+### Fixed
+- **Property filters now reach properties that hold their values as pages.** In a DB graph a user property keeps each value as a page of its own (the text lives in that page's title), even though Logseq declares the property with the same generic type it uses for plain text. The tool read that declared type as "text" and then, having no code path for a text property, fell back to inventing the attribute name from the property's *label*. Labels contain spaces and omit the random suffix Logseq gives user properties, so the query named a property that does not exist — and Logseq answers an unknown attribute with an empty result rather than an error, so the filter showed nothing at all. Measured on a real graph, a filter for `tags: my projects` plus `Project Status contains Active` went from 0 rows to the 2 expected rows. Two changes:
+  - Property types are now confirmed against the graph. When the declared type is a text-ish one, the tool samples a stored value and reports a reference when the values are entities. Genuine text properties (Logseq's built-in string/keyword ones) still compare as strings.
+  - The attribute name always comes from the property's real identity — the ident recorded when it was picked, or the one in the schema — instead of the display label. A name typed by hand without picking a suggestion is resolved by label when you search, so it reaches the real property too; the label-derived guess survives only for a label that matches nothing.
+- **A reference-property filter now honours its `contains` / `starts-with` / `ends-with` operator** instead of always matching the value's title exactly, and matches case-insensitively so a value typed in the wrong case still works. Each value pattern also binds its own variables, so several property filters in one AND group no longer unify their values.
+- **The list of known values under a property filter is laid out properly.** It sits on its own line spanning the filter row, in the same panel the tags filter uses for its associated properties, instead of printing as loose grey text wrapped inside the shrink-to-fit value box — which stretched the row and left the list misaligned with the rest of the filter.
+
 ## [0.10.0] - 2026-09-22
 
 ### Added

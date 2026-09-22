@@ -469,6 +469,59 @@ class App {
     }
 
     /**
+     * Fill in the identity of any property filter whose name was typed by hand
+     * without picking a suggestion from the dropdown.
+     *
+     * Picking a suggestion records the property's real ident and its type; typing
+     * the name records neither. The label is not an attribute name (it contains
+     * spaces and omits the suffix Logseq gives user properties), so without this
+     * lookup the filter would name a property that does not exist — and Logseq
+     * answers that with an empty result rather than an error.
+     *
+     * @returns {Promise<boolean>} true when at least one filter was resolved
+     */
+    async resolvePropertyIdentities(rootGroup) {
+        const unresolved = QueryGenerator.flattenFilters(rootGroup).filter(f =>
+            f.type === 'property' &&
+            f.propertyName && f.propertyName.trim().length > 0 &&
+            !f.propertyIdent &&
+            !(f.propertySchema && f.propertySchema.ident)
+        );
+
+        if (unresolved.length === 0) return false;
+
+        let resolved = false;
+
+        for (const filter of unresolved) {
+            const wanted = filter.propertyName.trim().toLowerCase();
+            try {
+                const candidates = await this.api.getProperties(this.state.graph, filter.propertyName.trim());
+                const match = candidates.find(p => (p.title || '').toLowerCase() === wanted);
+                if (!match) continue;
+
+                filter.propertyIdent = match.ident;
+                resolved = true;
+
+                const schema = await this.api.getPropertySchemaByIdent(this.state.graph, match.ident);
+                if (schema && schema.valueType) {
+                    filter.propertySchema = {
+                        name: match.title,
+                        ident: match.ident,
+                        valueType: schema.valueType,
+                        cardinality: schema.cardinality || ':db.cardinality/one',
+                        isJournalDate: schema.isJournalDate,
+                        logseqType: schema.logseqType
+                    };
+                }
+            } catch (error) {
+                console.warn(`Could not resolve property "${filter.propertyName}":`, error);
+            }
+        }
+
+        return resolved;
+    }
+
+    /**
      * Generate Datalog query from current filters (tree structure)
      * @param {Object} [options] - { currentPageName } to resolve "current page" filters
      */
@@ -540,6 +593,13 @@ class App {
             // "current page" is resolved here, not when the filter was built: the
             // page open in Logseq can change between editing a filter and searching.
             const rootGroup = this.state.rootGroup || this.filterManager.getRootGroup();
+
+            // Same reasoning for a hand-typed property name: resolve it now, then
+            // rebuild the query so it names the property by its real ident.
+            if (await this.resolvePropertyIdentities(rootGroup)) {
+                this.generateQuery();
+            }
+
             if (QueryGenerator.usesCurrentPage(rootGroup)) {
                 let currentPageName;
                 try {
