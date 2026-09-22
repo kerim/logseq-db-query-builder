@@ -193,6 +193,22 @@ class LogseqAPI {
     }
 
     /**
+     * Read the page currently open in Logseq, for the "current page" scope.
+     * Resolved when a search runs rather than when the filter is built, because
+     * the open page can change in between.
+     * @returns {Promise<string|null>} lowercased page name, or null if no page is open
+     */
+    async getCurrentPageName() {
+        const page = await this._callAPI('logseq.Editor.getCurrentPage', []);
+        if (!page) return null;
+
+        const name = page['block/name'] || page[':block/name'] ||
+                     page.name || page['original-name'] || page.originalName;
+
+        return name ? String(name).toLowerCase() : null;
+    }
+
+    /**
      * Get all tags from a graph
      * @param {string} graphName - Ignored
      * @param {string} searchTerm - Optional search filter

@@ -9,16 +9,22 @@ class QueryGenerator {
     /**
      * Generate Datalog query from root group (tree structure)
      * @param {Object} rootGroup - Root group containing nested groups and filters
+     * @param {Object} [options] - { currentPageName } when any filter is scoped to "current page"
      * @returns {Object|null} Object with raw and wrapped query versions, or null if invalid
      */
     static varCounter = 0;
 
     // Substitutions collected during this generate() pass.
     // Each entry: { literal, keyword, symbol }
-    //   literal — the computed number used in the raw (API-direct) query
-    //   keyword — Logseq input keyword (e.g. 'today', '-7d', '-7d-start')
-    //   symbol  — Datalog symbol for the wrapped query (e.g. '?today', '?-7d')
+    //   literal — the computed value used in the raw (API-direct) query
+    //   keyword — Logseq input keyword (e.g. 'today', '-7d', 'query-page')
+    //   symbol  — Datalog symbol for the wrapped query (e.g. '?today', '?query-page')
     static relativeSubstitutions = [];
+
+    // Page name resolved for "current page" filters, supplied by the caller at
+    // search time. The raw (API) query needs the literal name; the wrapped query
+    // uses Logseq's own :query-page input instead, so it needs nothing here.
+    static currentPageName = null;
 
     /**
      * Tag a relative-date literal so it can be substituted later. Returns a
@@ -56,7 +62,7 @@ class QueryGenerator {
         return { wrapped, inputs: [...byKeyword.values()] };
     }
 
-    static generate(rootGroup) {
+    static generate(rootGroup, options = {}) {
         if (!rootGroup || rootGroup.type !== 'group') {
             return null;
         }
@@ -65,6 +71,7 @@ class QueryGenerator {
         this.varCounter = 0;
         this.relativeSubstitutions = [];
         this.usesParentRule = false;
+        this.currentPageName = (options.currentPageName || '').toLowerCase() || null;
 
         // Get all filters flattened for validation and entity detection
         const allFilters = this.flattenFilters(rootGroup);
@@ -219,10 +226,15 @@ ${wrappedWhere}]}`;
             case 'full-text':
                 return filter.value && filter.value.trim().length > 0;
             
+            case 'block-on-page':
+                // A "current page" scope carries no typed page name — the name is
+                // resolved when the query runs, so the filter is valid as-is.
+                if (filter.operator === 'current page') return true;
+                return filter.value && filter.value.trim().length > 0;
+
             case 'tags':
             case 'page-reference':
             case 'parent-page-reference':
-            case 'block-on-page':
                 return filter.value && filter.value.trim().length > 0;
             
             case 'property':
@@ -287,6 +299,16 @@ ${wrappedWhere}]}`;
             default:
                 return false;
         }
+    }
+
+    /**
+     * True when any filter is scoped to "current page". The caller must resolve
+     * which page is open in Logseq before running the raw (API) query.
+     */
+    static usesCurrentPage(rootGroup) {
+        return this.flattenFilters(rootGroup).some(
+            f => f.type === 'block-on-page' && f.operator === 'current page'
+        );
     }
 
     /**
@@ -358,11 +380,13 @@ ${wrappedWhere}]}`;
     }
 
     /**
-     * Build page name matching clause
+     * Build page name matching clause.
+     * :block/name always stores the lowercased page name, so the typed value is
+     * lowercased too — otherwise a capitalised page name silently matches nothing.
      */
     static buildPageClause(filter, entityVar) {
         const { operator = 'contains', value } = filter;
-        const escapedValue = this.escapeString(value);
+        const escapedValue = this.escapeString((value || '').toLowerCase());
 
         switch (operator) {
             case 'is':
@@ -629,7 +653,8 @@ ${wrappedWhere}]}`;
      * The two extension modes use Logseq's built-in recursive `parent` rule.
      */
     static buildPageReferenceClause(filter, entityVar) {
-        const escapedValue = this.escapeString(filter.value);
+        // Same lowercasing as buildBlockOnPageClause: :block/name is always lowercase.
+        const escapedValue = this.escapeString((filter.value || '').toLowerCase());
         const scope = filter.scope || 'parent';
         const idx = this.varCounter++;
         const refVar = `?ref${idx}`;
@@ -671,15 +696,56 @@ ${wrappedWhere}]}`;
     }
 
     /**
-     * Build block-on-page clause.
+     * Build block-on-page clause ("page (content)" filter).
      * Matches a block that lives on the chosen page.
+     *
+     * Operators mirror the page-name filter: is / contains / starts-with /
+     * ends-with compare the page name, and 'current page' drops the typed name
+     * entirely in favour of whichever page is open when the query runs. Because
+     * the page is only known at run time, 'current page' emits a tagged literal:
+     * the resolved name for the raw (API) query, and Logseq's own :query-page
+     * input — the page the query block sits on — for the wrapped query.
      */
     static buildBlockOnPageClause(filter, entityVar) {
-        const escapedValue = this.escapeString((filter.value || '').toLowerCase());
         const idx = this.varCounter++;
         const pageVar = `?bop${idx}`;
-        return `[${entityVar} :block/page ${pageVar}]
+        const operator = filter.operator || 'is';
+
+        if (operator === 'current page') {
+            const literal = this.currentPageName
+                ? `"${this.escapeString(this.currentPageName)}"`
+                : '""';
+            // 'query-page' pins the pasted query to the page it lives on, so it
+            // keeps meaning that page as you navigate. (Logseq's ':current-page'
+            // would instead follow whichever page is on screen.)
+            const tagged = this.tagLiteral(literal, 'query-page');
+            return `[${entityVar} :block/page ${pageVar}]
+ [${pageVar} :block/name ${tagged}]`;
+        }
+
+        // :block/name always stores the lowercased page name.
+        const escapedValue = this.escapeString((filter.value || '').toLowerCase());
+
+        if (operator === 'is') {
+            return `[${entityVar} :block/page ${pageVar}]
  [${pageVar} :block/name "${escapedValue}"]`;
+        }
+
+        // Per-clause variable so several page (content) filters can coexist in one
+        // AND group without their name bindings unifying.
+        const nameVar = `?bopname${idx}`;
+        const predicate = operator === 'contains' ? 'clojure.string/includes?'
+            : operator === 'starts-with' ? 'clojure.string/starts-with?'
+            : operator === 'ends-with' ? 'clojure.string/ends-with?'
+            : null;
+
+        if (!predicate) {
+            return null;
+        }
+
+        return `[${entityVar} :block/page ${pageVar}]
+ [${pageVar} :block/name ${nameVar}]
+ [(${predicate} ${nameVar} "${escapedValue}")]`;
     }
 
     /**

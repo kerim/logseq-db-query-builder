@@ -1,5 +1,22 @@
 # Logseq DB Query Builder - Project Status
 
+## v0.10.0 (2026-09-22)
+
+**Current Version**: v0.10.0
+
+### What's New in v0.10.0
+
+- **"page (content)" filter gains a full operator dropdown, including "current page".** It now offers the same `is` / `contains` / `starts-with` / `ends-with` choices as the page-name filter, plus **`current page`**: choose it and the page-name box greys out, and the query is scoped to whichever page is open in Logseq when the query runs. The page is read at search time, so it cannot go stale between building the filter and pressing Search. In the copied query it becomes Logseq's own `:query-page` input — the page the query is pasted on — so the copied query stays pinned to that page.
+- **Renamed and reordered for contrast:** `page` → **`page (name)`** (matches page names; returns pages) and `block on page` → **`page (content)`** (matches blocks living on a page; returns those blocks), now adjacent in the filter menu. The old names made it hard to see that "tags + page" asks whether the *page* carries a tag, while "tags + page (content)" asks which *blocks on* that page do.
+
+## v0.9.1 (2026-09-22)
+
+**Current Version**: v0.9.1
+
+### What's New in v0.9.1
+
+- **Fix: the "page" and "page reference" filters now match capitalised page names.** Logseq stores page names lowercased in `:block/name`, but both filters compared the typed value verbatim — so a page name typed with any capital letter matched nothing, silently, for every operator and every page-reference scope mode. Both clauses now lowercase before comparing, as the "block on page" and "parent links page" filters already did. Verified against a live graph: page filter 0 → 1 row, `contains` search 0 → 1, page-reference 0 → 2.
+
 ## v0.9.0 (2026-08-15)
 
 **Current Version**: v0.9.0

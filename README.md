@@ -53,7 +53,7 @@ This tool connects to **Logseq's built-in HTTP API** (no extra server needed):
 
 1. **Paste your API token** and click Connect
 2. **Click "+ Filter"** to add a filter
-3. **Choose filter type** (tags, page, property, etc.)
+3. **Choose filter type** (tags, page (name), page (content), property, etc.)
 4. **Set the value** and click **Search**
 5. **Copy the query** to use in Logseq
 
@@ -83,17 +83,33 @@ ALL of the following:
 
 | Filter Type | Description | Options |
 |-------------|-------------|---------|
-| **page** | Match page names | is, contains, starts-with, ends-with |
+| **page (name)** | Match page names. Returns pages | is, contains, starts-with, ends-with |
+| **page (content)** | Find the blocks that live on a page. Returns blocks | is, contains, starts-with, ends-with, current page |
 | **tags** | Find items with specific tags | Include child tags option |
 | **full text search** | Search block content | contains, equals |
 | **property** | Match property values | Auto-detects type (text, reference, boolean, date, number) |
 | **page reference** | Find blocks linking to pages | Auto-complete |
 | **parent links page** | Find blocks whose immediate parent links to a page | Auto-complete |
-| **block on page** | Find blocks that live on a specific page | Auto-complete |
 | **task** | Find task items | Status filter (multi-select). "Todo" also matches Task-tagged blocks with no explicit status, matching Logseq's task UI |
 | **priority** | Filter by priority | Urgent, High, Medium, Low |
 | **deadline / scheduled** | Filter blocks by whether deadline and/or scheduled properties are present at all | Field: deadline or scheduled / deadline / scheduled. State: is not set / is set. Pairs with the task filter to find tasks with no dates |
 | **between (dates)** | Date range queries | created-at, updated-at, journal-day. Absolute mode (date pickers) or Relative mode (Last/Next N days, custom range) |
+
+### "page (name)" vs "page (content)"
+
+These two are easy to confuse, and the choice decides whether a query can return anything at all:
+
+- **page (name)** matches *page names* and returns **pages**. `tags is highlight` + `page (name) is My Page` asks *whether My Page itself carries the highlight tag*.
+- **page (content)** matches the *blocks written on a page* and returns **those blocks**. `tags is highlight` + `page (content) is My Page` asks *which blocks on My Page carry the tag* — usually what you want when filtering your own notes.
+
+### Searching the page you're on
+
+Choose **current page** as the operator on a `page (content)` filter and you can drop the page name entirely:
+
+- **Search** reads whichever page is open in Logseq at that moment, so you don't have to know or type its name. It requires a connection to Logseq.
+- The **copied query** instead uses Logseq's own `:query-page` input, so it pins itself to the page you paste it on and keeps meaning that page even as you browse elsewhere.
+
+One shared detail: page names are stored lowercased in Logseq, so every page-name comparison here is case-insensitive — type the name however you like.
 
 ## Property Type Detection
 
@@ -172,6 +188,8 @@ When using the online version (HTTPS), your browser may block requests to the lo
 
 ## Version History
 
+- **v0.10.0** - "page (content)" filter gains is / contains / starts-with / ends-with plus **current page** (no page name needed — the tool searches the page open in Logseq, and the copied query pins itself to the page you paste it on); renamed "page" → "page (name)" and "block on page" → "page (content)", placed together in the menu
+- **v0.9.1** - Fix: the "page" and "page reference" filters now match capitalised page names (page names are stored lowercased, so any capital letter previously matched nothing)
 - **v0.9.0** - New "deadline / scheduled" filter: find blocks where deadline and/or scheduled is set or not set (pair with the task filter to find tasks with no dates)
 - **v0.8.0** - New "parent links page" and "block on page" filters; fix full-text search for terms containing punctuation (e.g. `gmail.com`, `(draft)`, `what?`)
 - **v0.7.6** - UX: ref-type property value inputs now have inline autocomplete (filtered from known values as you type)

@@ -470,10 +470,11 @@ class App {
 
     /**
      * Generate Datalog query from current filters (tree structure)
+     * @param {Object} [options] - { currentPageName } to resolve "current page" filters
      */
-    generateQuery() {
+    generateQuery(options = {}) {
         const rootGroup = this.state.rootGroup || this.filterManager.getRootGroup();
-        const queryObj = QueryGenerator.generate(rootGroup);
+        const queryObj = QueryGenerator.generate(rootGroup, options);
 
         if (queryObj) {
             this.state.generatedQuery = queryObj.raw;  // Use raw for API
@@ -536,6 +537,22 @@ class App {
         this.hideError();
 
         try {
+            // "current page" is resolved here, not when the filter was built: the
+            // page open in Logseq can change between editing a filter and searching.
+            const rootGroup = this.state.rootGroup || this.filterManager.getRootGroup();
+            if (QueryGenerator.usesCurrentPage(rootGroup)) {
+                let currentPageName;
+                try {
+                    currentPageName = await this.api.getCurrentPageName();
+                } catch (error) {
+                    throw new Error(`Could not read the current page from Logseq: ${error.message}`);
+                }
+                if (!currentPageName) {
+                    throw new Error('No page is open in Logseq. Open a page, then search again.');
+                }
+                this.generateQuery({ currentPageName });
+            }
+
             const result = await this.api.executeQuery(this.state.graph, this.state.generatedQuery, this.state.queryRules);
 
             console.log('API result:', result);

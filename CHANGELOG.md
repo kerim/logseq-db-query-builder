@@ -5,6 +5,19 @@ All notable changes to the Logseq DB Query Builder will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-09-22
+
+### Added
+- **"page (content)" filter gains a full operator dropdown, including "current page".** The filter formerly labelled "block on page" now offers the same choices as the page-name filter — `is`, `contains`, `starts-with`, `ends-with` — plus **`current page`**, which drops the typed page name and instead uses whichever page is open in Logseq when the query runs. Choosing `current page` greys out the page box. For the query the tool sends to the API, the open page is read at search time (so it cannot go stale between building a filter and searching); for the query you copy into Logseq, it emits Logseq's own `:query-page` input — the page the query is pasted on — so the copied query stays pinned to that page with no editing and no dependence on where you are browsing.
+
+### Changed
+- **Renamed two filters so the pair reads as a contrast, and placed them adjacent in the filter menu.** `page` → **`page (name)`** (matches page *names*, returns pages) and `block on page` → **`page (content)`** (matches the blocks written *on* a page, returns those blocks). The old labels made it hard to tell that "tags + page" asks whether the *page* carries a tag, while "tags + page (content)" asks which *blocks on* that page carry it.
+
+## [0.9.1] - 2026-09-22
+
+### Fixed
+- **The "page" and "page reference" filters now match capitalised page names.** Logseq stores page names lowercased in `:block/name`, but these two filters compared the typed value verbatim. A page name typed with any capital letter (e.g. `Walked through Two Decades`) therefore matched nothing, silently, for every operator — `is`, `contains`, `starts-with`, and `ends-with`, plus all three page-reference scope modes. Both clauses now lowercase the value before comparing, matching what the "block on page" and "parent links page" filters already did. Measured against a real graph: the page filter went from 0 rows to 1, a `contains` search from 0 to 1, and a page-reference filter from 0 to 2.
+
 ## [0.9.0] - 2026-08-15
 
 ### Added

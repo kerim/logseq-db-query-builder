@@ -5,9 +5,16 @@
 
 const FILTER_TYPES = {
     'page': {
-        label: 'page',
+        label: 'page (name)',
         operators: ['is', 'contains', 'starts-with', 'ends-with'],
         inputs: ['operator', 'value']
+    },
+    'block-on-page': {
+        label: 'page (content)',
+        // 'current page' keeps the page box visible but inert: the name is
+        // resolved at search time to whichever page is open in Logseq.
+        operators: ['is', 'contains', 'starts-with', 'ends-with', 'current page'],
+        inputs: ['operator', 'value-autocomplete']
     },
     'tags': {
         label: 'tags',
@@ -31,11 +38,6 @@ const FILTER_TYPES = {
     },
     'parent-page-reference': {
         label: 'parent links page',
-        operators: null,
-        inputs: ['value-autocomplete']
-    },
-    'block-on-page': {
-        label: 'block on page',
         operators: null,
         inputs: ['value-autocomplete']
     },
@@ -289,6 +291,9 @@ class FilterManager {
                     ).join('');
                     operatorSelect.addEventListener('change', (e) => {
                         filter.operator = e.target.value;
+                        // Re-render so inputs that depend on the operator follow it
+                        // (e.g. "current page" disables the page-name box).
+                        this.render();
                         this.notifyChange();
                     });
                     // Set default operator if not set
@@ -319,16 +324,28 @@ class FilterManager {
                     break;
 
                 case 'value-autocomplete':
+                    // A "current page" filter has no page name to type — the name is
+                    // read from Logseq when you press Search. Keep the box in place,
+                    // greyed out, so the row's shape is unchanged.
+                    const isCurrentPage = filter.type === 'block-on-page' &&
+                                          filter.operator === 'current page';
+
                     const autocompleteInput = document.createElement('input');
                     autocompleteInput.type = 'text';
                     autocompleteInput.className = 'filter-input';
-                    autocompleteInput.placeholder = 'Type to search...';
-                    autocompleteInput.value = filter.value || '';
-                    autocompleteInput.setAttribute('data-autocomplete', filter.type);
-                    autocompleteInput.addEventListener('input', (e) => {
-                        filter.value = e.target.value;
-                        this.notifyChange();
-                    });
+                    autocompleteInput.placeholder = isCurrentPage
+                        ? 'the page open in Logseq when you search'
+                        : 'Type to search...';
+                    autocompleteInput.value = isCurrentPage ? '' : (filter.value || '');
+                    if (isCurrentPage) {
+                        autocompleteInput.disabled = true;
+                    } else {
+                        autocompleteInput.setAttribute('data-autocomplete', filter.type);
+                        autocompleteInput.addEventListener('input', (e) => {
+                            filter.value = e.target.value;
+                            this.notifyChange();
+                        });
+                    }
                     container.appendChild(autocompleteInput);
 
                     // Page-reference: tri-state scope selector walking :block/parent
